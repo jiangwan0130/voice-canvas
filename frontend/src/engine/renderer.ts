@@ -29,6 +29,7 @@ type RendererStatus = 'idle' | 'running' | 'paused' | 'error';
 export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private background: string;
   private history: DrawInstruction[] = [];
   private redoStack: DrawInstruction[] = [];
   private queue: DrawInstruction[] = [];
@@ -52,8 +53,9 @@ export class CanvasRenderer {
     this.canvas = config.canvas;
     this.canvas.width = config.width ?? 800;
     this.canvas.height = config.height ?? 500;
+    this.background = config.background ?? '#F5F5F5';
     this.ctx = this.canvas.getContext('2d')!;
-    this.ctx.fillStyle = config.background ?? '#F5F5F5';
+    this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
@@ -111,7 +113,7 @@ export class CanvasRenderer {
 
   /** 清空画布 */
   clear(): void {
-    this.ctx.fillStyle = '#F5F5F5';
+    this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.history = [];
     this.redoStack = [];
@@ -369,6 +371,11 @@ export class CanvasRenderer {
       this.ctx.lineWidth = sw;
       this.ctx.stroke();
     }, duration);
+
+    // mode='both': 描边动画完成后追加填充
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipPolygon(points));
+    }
   }
 
   private async drawEllipse(inst: DrawInstruction): Promise<void> {
@@ -417,9 +424,11 @@ export class CanvasRenderer {
         this.ctx.fillStyle = inst.fill as string ?? this.currentColor;
         this.ctx.fill();
       }
-      this.ctx.strokeStyle = stroke;
-      this.ctx.lineWidth = sw;
-      this.ctx.stroke();
+      if (mode !== 'fill') {
+        this.ctx.strokeStyle = stroke;
+        this.ctx.lineWidth = sw;
+        this.ctx.stroke();
+      }
     }, duration);
   }
 
@@ -493,7 +502,7 @@ export class CanvasRenderer {
    * 瞬间重绘所有历史指令（无动画）
    */
   private redrawAll(): void {
-    this.ctx.fillStyle = '#F5F5F5';
+    this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     for (const inst of this.history) {
       this.drawInstant(inst);
@@ -551,7 +560,50 @@ export class CanvasRenderer {
         if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
         break;
       }
-      // 其他类型在 redraw 时跳过动画直接画
+      case 'polygon': {
+        const pts = inst.points as Array<[number, number]> ?? [];
+        if (pts.length < 3) break;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
+        this.ctx.closePath();
+        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
+        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        break;
+      }
+      case 'curve': {
+        const pts = inst.points as Array<[number, number]> ?? [];
+        if (pts.length < 2) break;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
+        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        break;
+      }
+      case 'arc': {
+        const acx = (inst.cx as number) ?? 0;
+        const acy = (inst.cy as number) ?? 0;
+        const ar = (inst.r as number) ?? 30;
+        const aStart = (inst.startAngle as number) ?? 0;
+        const aEnd = (inst.endAngle as number) ?? Math.PI;
+        this.ctx.beginPath();
+        this.ctx.arc(acx, acy, ar, aStart, aEnd);
+        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
+        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        break;
+      }
+      case 'text': {
+        const tx = (inst.x as number) ?? 0;
+        const ty = (inst.y as number) ?? 0;
+        const content = (inst.content as string) ?? '';
+        const fontSize = (inst.fontSize as number) ?? 20;
+        const textFill = fill ?? color ?? this.currentColor;
+        this.ctx.font = `${fontSize}px sans-serif`;
+        this.ctx.fillStyle = textFill;
+        this.ctx.fillText(content, tx, ty);
+        break;
+      }
+      // 控制指令 + 编辑指令在 instant 中跳过（不影响画面）
     }
   }
 

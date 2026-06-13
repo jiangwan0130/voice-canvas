@@ -176,26 +176,32 @@ export function createCanvasGradient(
 
 /**
  * 从 CanvasGradient 中取样指定坐标的颜色。
- * 通过离屏 canvas 取 1×1 像素。
+ * 通过与原 canvas 同尺寸的离屏 canvas 采样，确保渐变坐标系正确映射。
+ * 内部缓存离屏 canvas——同一 fill 调用内第一次创建，后续复用。
  */
+let _gradientCache: { canvas: HTMLCanvasElement; gradient: CanvasGradient; w: number; h: number } | null = null;
+
 function sampleGradient(
   ctx: CanvasRenderingContext2D,
   gradient: CanvasGradient,
   x: number,
   y: number
 ): string {
-  // 用当前 canvas 的 fillStyle 间接获取
-  // 策略：在离屏 canvas 画一个像素，读出颜色
-  const offscreen = document.createElement('canvas');
-  offscreen.width = 1;
-  offscreen.height = 1;
-  const octx = offscreen.getContext('2d')!;
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
 
-  // 需要让渐变正确映射到目标坐标
-  // 简单方案：基于线性渐变端点直接插值
-  // 这里使用离屏 canvas fillRect 方式
-  octx.fillStyle = gradient;
-  octx.fillRect(0, 0, 1, 1);
-  const [r, g, b] = Array.from(octx.getImageData(0, 0, 1, 1).data);
-  return `rgb(${r},${g},${b})`;
+  // 缓存命中：同尺寸 + 同渐变引用
+  if (!_gradientCache || _gradientCache.gradient !== gradient || _gradientCache.w !== w || _gradientCache.h !== h) {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = w;
+    offscreen.height = h;
+    const octx = offscreen.getContext('2d')!;
+    octx.fillStyle = gradient;
+    octx.fillRect(0, 0, w, h);
+    _gradientCache = { canvas: offscreen, gradient, w, h };
+  }
+
+  const octx = _gradientCache.canvas.getContext('2d')!;
+  const pixel = octx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+  return `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
 }
