@@ -13,7 +13,7 @@ from config import CANVAS_WIDTH, CANVAS_HEIGHT
 from llm_client import call_llm
 from json_repair import repair_pipeline
 from command_parser import validate_instructions
-from asr.qiniu_asr import QiniuASR
+from asr.paraformer_asr import ParaformerASR
 from router import route
 
 app = FastAPI(title="语绘 Voice Canvas API")
@@ -27,7 +27,7 @@ app.add_middleware(
 
 # ============ 服务实例 ============
 
-qiniu_asr = QiniuASR()
+paraformer_asr = ParaformerASR()
 
 
 # ============ Pydantic Models ============
@@ -86,17 +86,17 @@ def health():
 @app.post("/api/asr")
 async def transcribe_audio(audio: UploadFile = File(...)):
     """
-    七牛云 ASR 语音识别。
+    阿里云 Paraformer 语音识别。
     失败时返回 error + fallback: webspeech，前端降级 Web Speech API。
     """
     try:
         audio_data = await audio.read()
         if not audio_data:
             raise HTTPException(400, "音频数据为空")
-        text = await qiniu_asr.transcribe(audio_data)
+        text = await paraformer_asr.transcribe(audio_data)
         if not text:
-            return {"text": "", "source": "qiniu", "note": "识别结果为空"}
-        return {"text": text, "source": "qiniu"}
+            return {"text": "", "source": "paraformer", "note": "识别结果为空"}
+        return {"text": text, "source": "paraformer"}
     except Exception as e:
         return {"text": "", "source": "error", "error": str(e), "fallback": "webspeech"}
 

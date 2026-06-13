@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 七牛云 ASR
-QINIU_ASR_APP_ID = os.getenv("QINIU_ASR_APP_ID", "")
-QINIU_ASR_SECRET_KEY = os.getenv("QINIU_ASR_SECRET_KEY", "")
+# 阿里云百炼 ASR（Paraformer）
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
-# DeepSeek via 七牛云 MaaS
+# DeepSeek 官方直连（platform.deepseek.com 获取 API Key）
+# deepseek-v3 / deepseek-chat 将于 2026/07/24 停用，默认使用 v4-flash
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.qnaigc.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v3")
+LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
 
 # Canvas
 CANVAS_WIDTH = 1200
