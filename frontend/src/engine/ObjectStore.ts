@@ -4,9 +4,8 @@
 // ============================================================
 
 import type { DrawObject, GridCell, GridState } from '../types/commands';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_COLS, GRID_ROWS } from '../config';
 
-const GRID_COLS = 3;
-const GRID_ROWS = 2;
 const GRID_LABELS: Record<string, string> = {
   '0,0': '左上', '0,1': '中上', '0,2': '右上',
   '1,0': '左下', '1,1': '中下', '1,2': '右下',
@@ -15,8 +14,11 @@ const GRID_LABELS: Record<string, string> = {
 export class ObjectStore {
   private objects: Map<string, DrawObject> = new Map();
   private idCounter = 0;
-  public width = 1200;
-  public height = 800;
+
+  constructor(
+    public width: number = CANVAS_WIDTH,
+    public height: number = CANVAS_HEIGHT,
+  ) {}
 
   /** 添加对象 — 自动分配 id + cellId */
   add(obj: Omit<DrawObject, 'id' | 'cellId'>): DrawObject {
@@ -95,8 +97,9 @@ export class ObjectStore {
     objects.forEach(o => this.objects.set(o.id, deepCopyObject(o)));
   }
 
+  /** 返回对象数组的快照引用。深拷贝由 HistoryManager.save() 统一负责。 */
   snapshot(): DrawObject[] {
-    return this.getAll().map(o => deepCopyObject(o));
+    return this.getAll();
   }
 
   toGridState(): GridState {

@@ -14,6 +14,8 @@ import { speak } from './hooks/useSpeechFeedback';
 import { transcribeAudio, generateInstructions } from './services/api';
 import type { CanvasState, LastAction } from './types/commands';
 import type { VoiceStatus } from './hooks/useVoice';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
@@ -23,17 +25,21 @@ function App() {
   const [subtitle, setSubtitle] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const canvasRef = useRef<CanvasHandle>(null);
-  const storeRef = useRef(new ObjectStore());
+  const storeRef = useRef(new ObjectStore(CANVAS_WIDTH, CANVAS_HEIGHT));
   const historyMgrRef = useRef(new HistoryManager());
   const executorRef = useRef<CommandExecutor | null>(null);
   const lastActionRef = useRef<LastAction | null>(null);
   const [debugText, setDebugText] = useState('');
   const [objectCount, setObjectCount] = useState(0);
+  const isProcessingRef = useRef(false);
 
   // ---- 主流程 ----
 
   const processText = useCallback(async (text: string) => {
     if (!text.trim() || !canvasRef.current) return;
+    // 防止并发调用
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setSubtitle(text);
     setStatus('generating');
 
@@ -69,6 +75,8 @@ function App() {
       setStatus('error');
       setSubtitle('出错了，请重试');
       return;
+    } finally {
+      isProcessingRef.current = false;
     }
 
     setStatus('idle');
@@ -104,7 +112,7 @@ function App() {
   }, [processText]);
 
   const voice = useVoice(handleVoiceResult, (s: VoiceStatus) => {
-    if (s === 'error') setStatus('error');
+    setStatus(s);
   });
 
   // ---- Canvas 初始化 ----
@@ -132,15 +140,27 @@ function App() {
   };
 
   const handleUndo = () => {
-    if (executorRef.current?.redoUndo()) {
+    canvasRef.current?.abort();
+    if (executorRef.current?.undo()) {
       setObjectCount(storeRef.current.count);
       setSubtitle('已撤销');
+      setStatus('idle');
+    }
+  };
+
+  const handleRedo = () => {
+    canvasRef.current?.abort();
+    if (executorRef.current?.redo()) {
+      setObjectCount(storeRef.current.count);
+      setSubtitle('已重做');
+      setStatus('idle');
     }
   };
 
   const handleClear = () => {
     storeRef.current.clear();
     historyMgrRef.current.clear();
+    canvasRef.current?.clear();
     lastActionRef.current = null;
     setHistory([]);
     setObjectCount(0);
@@ -169,15 +189,17 @@ function App() {
       </header>
 
       <main className="app-main">
-        <Canvas
-          ref={canvasRef}
-          width={1200}
-          height={800}
-          background="#FFFFFF"
-          onStatusChange={() => {}}
-          onComplete={() => setStatus('idle')}
-          onReady={handleCanvasReady}
-        />
+        <ErrorBoundary>
+          <Canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            background="#FFFFFF"
+            onStatusChange={() => {}}
+            onComplete={() => setStatus('idle')}
+            onReady={handleCanvasReady}
+          />
+        </ErrorBoundary>
       </main>
 
       <footer className="app-footer">
@@ -193,6 +215,7 @@ function App() {
             {status === 'recording' ? '🔴 停止' : '🎤 开始'}
           </button>
           <button onClick={handleUndo}>↩ 撤销</button>
+          <button onClick={handleRedo}>↪ 重做</button>
           <button onClick={handleClear}>🗑 清空</button>
           <input
             type="text"

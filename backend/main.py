@@ -4,23 +4,41 @@ PR #9 芝士番薯: ASR + 路由 + 本地规则引擎
 PR #9 月栖白: LLM 客户端 + JSON 修复 + 安全校验
 """
 import json
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import logging
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-from config import CANVAS_WIDTH, CANVAS_HEIGHT
+from config import CANVAS_WIDTH, CANVAS_HEIGHT, ALLOWED_ORIGINS
 from llm_client import call_llm
 from json_repair import repair_pipeline
 from command_parser import validate_instructions
 from asr.paraformer_asr import ParaformerASR
 from router import route
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# 速率限制器
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="语绘 Voice Canvas API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# 音频上传大小上限
+MAX_AUDIO_SIZE = 10 * 1024 * 1024  # 10 MB
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,11 +57,19 @@ class GridObject(BaseModel):
     role: Optional[str] = None
     groupId: Optional[str] = None
     cellId: Optional[str] = None
-    cx: Optional[float] = None; cy: Optional[float] = None; r: Optional[float] = None
-    x: Optional[float] = None; y: Optional[float] = None; w: Optional[float] = None; h: Optional[float] = None
-    x1: Optional[float] = None; y1: Optional[float] = None
-    x2: Optional[float] = None; y2: Optional[float] = None
-    fill: Optional[str] = None; color: Optional[str] = None
+    cx: Optional[float] = None
+    cy: Optional[float] = None
+    r: Optional[float] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
+    w: Optional[float] = None
+    h: Optional[float] = None
+    x1: Optional[float] = None
+    y1: Optional[float] = None
+    x2: Optional[float] = None
+    y2: Optional[float] = None
+    fill: Optional[str] = None
+    color: Optional[str] = None
     class Config: extra = "allow"
 
 class GridCell(BaseModel):
@@ -84,7 +110,8 @@ def health():
 # ============ 语音识别 (芝士番薯) ============
 
 @app.post("/api/asr")
-async def transcribe_audio(audio: UploadFile = File(...)):
+@limiter.limit("20/minute")
+async def transcribe_audio(request: Request, audio: UploadFile = File(...)):
     """
     阿里云 Paraformer 语音识别。
     失败时返回 error + fallback: webspeech，前端降级 Web Speech API。
@@ -93,10 +120,14 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         audio_data = await audio.read()
         if not audio_data:
             raise HTTPException(400, "音频数据为空")
+        if len(audio_data) > MAX_AUDIO_SIZE:
+            raise HTTPException(413, f"音频文件过大，最大支持 {MAX_AUDIO_SIZE // (1024*1024)}MB")
         text = await paraformer_asr.transcribe(audio_data)
         if not text:
             return {"text": "", "source": "paraformer", "note": "识别结果为空"}
         return {"text": text, "source": "paraformer"}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"text": "", "source": "error", "error": str(e), "fallback": "webspeech"}
 
@@ -104,7 +135,8 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 # ============ 绘图指令生成 (协作) ============
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate_instructions(req: GenerateRequest):
+@limiter.limit("10/minute")
+async def generate_instructions(request: Request, req: GenerateRequest):
     text = req.text.strip()
     if not text:
         return GenerateResponse(reply="请说点什么吧", instructions=[], source="local")
@@ -135,14 +167,14 @@ async def generate_instructions(req: GenerateRequest):
         result = await call_llm(text, grid_json, last_action_str)
         raw_output = json.dumps(result, ensure_ascii=False)
     except Exception as e:
-        print(f"[LLM] call failed: {e}")
+        logger.error(f"LLM call failed: {e}")
 
     # 3. 修复管道 (月栖白)
     parsed = None
     if raw_output:
         parsed, repair_err = repair_pipeline(raw_output)
         if repair_err:
-            print(f"[Repair] {repair_err}")
+            logger.warning(f"JSON repair: {repair_err}")
 
     # 4. 提取 + 校验 (月栖白)
     instructions_raw = parsed.get("instructions", []) if parsed else []

@@ -1,5 +1,5 @@
-/** useVoice — PR #10 月栖白: MediaRecorder + AnalyserNode VAD */
-import { useRef, useCallback, useState } from 'react';
+/** useVoice — MediaRecorder + AnalyserNode VAD */
+import { useRef, useCallback, useEffect } from 'react';
 
 export type VoiceStatus = 'idle' | 'recording' | 'transcribing' | 'error';
 
@@ -13,14 +13,38 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
   const maxTimerRef = useRef<number | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const webTextRef = useRef('');
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  // 用 ref 保存回调，避免闭包捕获过时引用
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
+  const onStatusRef = useRef(onStatusChange);
+  onStatusRef.current = onStatusChange;
+
+  const cleanup = useCallback(() => {
+    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = null; }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    analyserRef.current = null;
+  }, []);
 
   const start = useCallback(async (silenceMs = 2000, maxDuration = 60000) => {
     try {
+      cleanup();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       // VAD
       const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
@@ -33,9 +57,10 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
       chunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        onResult({ blob: new Blob(chunksRef.current, { type: 'audio/webm' }), webSpeechText: webTextRef.current });
+        onResultRef.current({ blob: new Blob(chunksRef.current, { type: 'audio/webm' }), webSpeechText: webTextRef.current });
         webTextRef.current = '';
       };
+      recorder.onerror = () => onStatusRef.current('error');
 
       // Web Speech API 备用
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -56,7 +81,7 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
       }
 
       recorder.start();
-      onStatusChange('recording');
+      onStatusRef.current('recording');
 
       const bufferLen = analyser.frequencyBinCount;
       const dataArr = new Uint8Array(bufferLen);
@@ -74,21 +99,29 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
         else if (hasSound && Date.now() - (silenceStart || Date.now()) >= silenceMs) { stop(); return; }
         else if (hasSound && !silenceStart) silenceStart = Date.now();
 
-        requestAnimationFrame(check);
+        rafIdRef.current = requestAnimationFrame(check);
       };
-      requestAnimationFrame(check);
+      rafIdRef.current = requestAnimationFrame(check);
 
       maxTimerRef.current = window.setTimeout(() => { if (mediaRecorderRef.current?.state === 'recording') stop(); }, maxDuration);
-    } catch { onStatusChange('error'); }
-  }, []);
+    } catch { onStatusRef.current('error'); }
+  }, [cleanup]);
 
   const stop = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
-    if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+    if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
+    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = null; }
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     streamRef.current?.getTracks().forEach(t => t.stop());
-    onStatusChange('transcribing');
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    analyserRef.current = null;
+    onStatusRef.current('transcribing');
   }, []);
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => { cleanup(); };
+  }, [cleanup]);
 
   return { start, stop };
 }

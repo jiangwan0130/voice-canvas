@@ -40,9 +40,9 @@ export class HistoryManager {
   redo(currentObjects: DrawObject[], currentAction: string): { objects: DrawObject[]; action: string } | null {
     const snap = this.redoStack.pop();
     if (!snap) return null;
-    // 保存 redo 前的当前状态，以便后续 undo 可以回到这里
+    // 保存 redo 前的当前状态（深拷贝 points），以便后续 undo 可以回到这里
     this.undoStack.push({
-      objects: currentObjects.map(o => ({ ...o })),
+      objects: currentObjects.map(o => ({ ...o, points: o.points ? o.points.map((p: [number, number]) => [p[0], p[1]] as [number, number]) : undefined })),
       action: currentAction,
     });
     return snap;

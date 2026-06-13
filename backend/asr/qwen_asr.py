@@ -1,7 +1,8 @@
-"""Qwen-ASR 扩展占位 — 后续增强"""
+"""Qwen-ASR placeholder — reserved for future ASR provider expansion"""
 from .base import ASRProvider
 
 
 class QwenASR(ASRProvider):
+    """Stub: not yet implemented. Raise to make callers aware."""
     async def transcribe(self, audio_data: bytes) -> str:
-        return ""
+        raise NotImplementedError("QwenASR not yet integrated")

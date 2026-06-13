@@ -13,6 +13,9 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
 
+# CORS
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+
 # Canvas
 CANVAS_WIDTH = 1200
 CANVAS_HEIGHT = 800

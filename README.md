@@ -221,9 +221,7 @@ voice-canvas/
 │       ├── App.css              # 全局样式
 │       ├── components/
 │       │   ├── Canvas.tsx       # 画布组件
-│       │   ├── VoiceBar.tsx     # 录音控制栏
-│       │   ├── Subtitles.tsx    # TTS 字幕
-│       │   └── CommandHistory.tsx # 指令历史
+│       │   └── ErrorBoundary.tsx # 错误边界
 │       ├── engine/
 │       │   ├── renderer.ts      # 逐笔动画渲染器
 │       │   ├── brush.ts         # 画笔系统
