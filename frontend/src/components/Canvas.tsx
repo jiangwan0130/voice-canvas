@@ -16,8 +16,6 @@ export interface CanvasHandle {
   resume: () => void;
   abort: () => void;
   clear: () => void;
-  undo: () => void;
-  redo: () => void;
   getSnapshot: () => string;
 }
 
@@ -71,8 +69,6 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     resume: () => rendererRef.current?.resume(),
     abort: () => rendererRef.current?.abort(),
     clear: () => rendererRef.current?.clear(),
-    undo: () => rendererRef.current?.undo(),
-    redo: () => rendererRef.current?.redo(),
     getSnapshot: () => rendererRef.current?.getSnapshot() ?? '',
   }));
 

@@ -132,9 +132,16 @@ function App() {
   };
 
   const handleUndo = () => {
-    if (executorRef.current?.redoUndo()) {
+    if (executorRef.current?.undo()) {
       setObjectCount(storeRef.current.count);
       setSubtitle('已撤销');
+    }
+  };
+
+  const handleRedo = () => {
+    if (executorRef.current?.redo()) {
+      setObjectCount(storeRef.current.count);
+      setSubtitle('已重做');
     }
   };
 
@@ -193,6 +200,7 @@ function App() {
             {status === 'recording' ? '🔴 停止' : '🎤 开始'}
           </button>
           <button onClick={handleUndo}>↩ 撤销</button>
+          <button onClick={handleRedo}>↪ 重做</button>
           <button onClick={handleClear}>🗑 清空</button>
           <input
             type="text"

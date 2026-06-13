@@ -101,8 +101,17 @@ export class CommandExecutor {
   }
 
   /** undo 操作：恢复快照 + 全量重绘 */
-  redoUndo(): boolean {
+  undo(): boolean {
     const snap = this.history.undo();
+    if (!snap) return false;
+    this.store.restore(snap.objects);
+    this.renderer.drawObjects(this.store.getAll());
+    return true;
+  }
+
+  /** redo 操作：先保存当前状态 → 恢复 redo 快照 → 全量重绘 */
+  redo(): boolean {
+    const snap = this.history.redo(this.store.snapshot(), "redo");
     if (!snap) return false;
     this.store.restore(snap.objects);
     this.renderer.drawObjects(this.store.getAll());

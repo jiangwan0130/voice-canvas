@@ -31,8 +31,6 @@ export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private background: string;
-  private history: DrawInstruction[] = [];
-  private redoStack: DrawInstruction[] = [];
   private queue: DrawInstruction[] = [];
   private status: RendererStatus = 'idle';
   private abortController: AbortController | null = null;
@@ -66,7 +64,6 @@ export class CanvasRenderer {
   async execute(instructions: DrawInstruction[]): Promise<void> {
     this.abortController = new AbortController();
     this.queue = [...instructions];
-    this.redoStack = [];
     this.setStatus('running');
 
     try {
@@ -81,7 +78,6 @@ export class CanvasRenderer {
         const inst = this.queue[i];
         this.onInstructionStart?.(inst, i);
         await this.executeOne(inst);
-        this.history.push(inst);
         this.onInstructionEnd?.(inst, i);
       }
     } catch (err) {
@@ -112,28 +108,10 @@ export class CanvasRenderer {
     this.setStatus('idle');
   }
 
-  /** 清空画布 */
+  /** 清空画布（历史管理由 HistoryManager 负责） */
   clear(): void {
     this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.history = [];
-    this.redoStack = [];
-  }
-
-  /** 撤销 */
-  undo(): void {
-    if (this.history.length === 0) return;
-    const removed = this.history.pop()!;
-    this.redoStack.push(removed);
-    this.redrawAll();
-  }
-
-  /** 重做 */
-  redo(): void {
-    if (this.redoStack.length === 0) return;
-    const restored = this.redoStack.pop()!;
-    this.history.push(restored);
-    this.drawInstant(restored);
   }
 
   /** 获取当前状态 */
@@ -176,7 +154,7 @@ export class CanvasRenderer {
         this.clear();
         break;
       case 'undo':
-        this.undo();
+        // undo 由 CommandExecutor + HistoryManager 统一管理，Renderer 不处理
         break;
       case 'wait':
         await this.wait((inst.duration as number) ?? 300);
@@ -503,27 +481,18 @@ export class CanvasRenderer {
    * PR #11: 根据 ObjectStore 的对象列表瞬间重绘全部（无动画）
    * 用于对象编辑后（update/move/delete）刷新画布
    */
+  /**
+   * 根据 ObjectStore 的对象列表瞬间重绘全部（无动画）。
+   * 用于对象编辑后（update/move/delete/undo/redo）刷新画布。
+   *
+   * NOTE: 当前为全量重绘。对象数量较大时可优化为脏区域重绘，
+   * 但对于当前用例（数十个对象），全量重绘 < 1ms 可接受。
+   */
   drawObjects(objects: DrawObject[]): void {
     this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     for (const obj of objects) {
       this.drawInstant(obj as unknown as DrawInstruction);
-    }
-    // 同步 renderer 内部历史，保证后续 undo 一致（注意：清空 redoStack）
-    this.history = objects.map(o => ({ ...o, action: o.type ?? 'circle' } as DrawInstruction));
-    this.redoStack = [];
-  }
-
-  // ============ 历史重绘 ============
-
-  /**
-   * 瞬间重绘所有历史指令（无动画）
-   */
-  private redrawAll(): void {
-    this.ctx.fillStyle = this.background;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    for (const inst of this.history) {
-      this.drawInstant(inst);
     }
   }
 

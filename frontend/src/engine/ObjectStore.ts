@@ -95,8 +95,9 @@ export class ObjectStore {
     objects.forEach(o => this.objects.set(o.id, deepCopyObject(o)));
   }
 
+  /** 返回对象数组的快照引用。深拷贝由 HistoryManager.save() 统一负责。 */
   snapshot(): DrawObject[] {
-    return this.getAll().map(o => deepCopyObject(o));
+    return this.getAll();
   }
 
   toGridState(): GridState {
