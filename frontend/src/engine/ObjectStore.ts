@@ -88,7 +88,10 @@ export class ObjectStore {
 
   restore(objects: DrawObject[]): void {
     this.objects.clear();
-    this.idCounter = objects.length;
+    this.idCounter = objects.reduce((max, o) => {
+      const num = parseInt(o.id.replace('obj_', ''), 10);
+      return Math.max(max, isNaN(num) ? 0 : num);
+    }, 0);
     objects.forEach(o => this.objects.set(o.id, { ...o }));
   }
 
