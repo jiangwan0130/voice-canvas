@@ -173,13 +173,13 @@ function App() {
 
   // ---- 状态颜色 ----
 
-  const statusColors: Record<AppStatus, string> = {
-    idle: '#52c41a', recording: '#1677ff', transcribing: '#fa8c16',
-    generating: '#722ed1', drawing: '#eb2f96', error: '#ff4d4f',
-  };
-  const statusLabels: Record<AppStatus, string> = {
-    idle: '🟢 等待语音', recording: '🔵 录音中', transcribing: '🟠 识别中',
-    generating: '🟣 AI 理解中', drawing: '🟣 绘制中', error: '🔴 错误',
+  const STATUS_CONFIG: Record<AppStatus, { color: string; label: string }> = {
+    idle:    { color: '#52c41a', label: '🟢 等待语音' },
+    recording:   { color: '#1677ff', label: '🔵 录音中' },
+    transcribing: { color: '#fa8c16', label: '🟠 识别中' },
+    generating: { color: '#722ed1', label: '🟣 AI 理解中' },
+    drawing:    { color: '#eb2f96', label: '🟣 绘制中' },
+    error:     { color: '#ff4d4f', label: '🔴 错误' },
   };
 
   return (
@@ -195,7 +195,6 @@ function App() {
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
             background="#FFFFFF"
-            onStatusChange={() => {}}
             onComplete={() => setStatus('idle')}
             onReady={handleCanvasReady}
           />
@@ -204,8 +203,8 @@ function App() {
 
       <footer className="app-footer">
         <div className="status-row">
-          <span className="status-dot" style={{ background: statusColors[status] }} />
-          <span>{statusLabels[status]}</span>
+          <span className="status-dot" style={{ background: STATUS_CONFIG[status].color }} />
+          <span>{STATUS_CONFIG[status].label}</span>
           <span className="subtitle">{subtitle}</span>
           <span className="object-count">对象: {objectCount}</span>
         </div>

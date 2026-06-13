@@ -130,6 +130,9 @@ export type ActionType =
   | 'setBrush'
   | 'clear'
   | 'undo'
+  | 'redo'
+  | 'pause'
+  | 'resume'
   | 'wait'
   | 'speak';
 

@@ -5,12 +5,12 @@ import { ObjectStore } from './ObjectStore';
 import { HistoryManager } from './HistoryManager';
 import { fuzzyFind } from './FuzzyMatcher';
 
-const SHAPE_ACTIONS = ['circle','rect','line','curve','polygon','ellipse','arc','text'] as const;
+const SHAPE_ACTIONS = new Set<string>(['circle','rect','line','curve','polygon','ellipse','arc','text']);
 
 /** 将 DrawInstruction 的 action 字段映射为 DrawObject 兼容的 type 字段 */
 function instructionToDrawParams(inst: DrawInstruction): Partial<DrawObject> {
   const { action, ...rest } = inst;
-  if ((SHAPE_ACTIONS as readonly string[]).includes(action)) {
+  if (SHAPE_ACTIONS.has(action)) {
     return { ...rest, type: action as ShapeType } as Partial<DrawObject>;
   }
   return rest as Partial<DrawObject>;
@@ -34,7 +34,7 @@ export class CommandExecutor {
     const { action } = inst;
 
     // 对象管理 — 每次 store 变更前保存快照，保证逐条可撤销
-    if ((SHAPE_ACTIONS as readonly string[]).includes(action)) {
+    if (SHAPE_ACTIONS.has(action)) {
       this.history.save(this.store.snapshot(), userText);
       this.store.add(instructionToDrawParams(inst) as Omit<DrawObject, 'id' | 'cellId'>);
     }
@@ -68,11 +68,7 @@ export class CommandExecutor {
         } else if (obj.type === 'line') {
           updates.x1 = (obj.x1 ?? 0) + dx; updates.y1 = (obj.y1 ?? 0) + dy;
           updates.x2 = (obj.x2 ?? 0) + dx; updates.y2 = (obj.y2 ?? 0) + dy;
-        } else if (obj.type === 'polygon') {
-          const pts = obj.points ? obj.points.map((p: [number, number]) => [p[0] + dx, p[1] + dy] as [number, number]) : undefined;
-          this.store.update(inst.target as string, { points: pts } as Partial<DrawObject>);
-          return;
-        } else if (obj.type === 'curve') {
+        } else if (obj.type === 'polygon' || obj.type === 'curve') {
           const pts = obj.points ? obj.points.map((p: [number, number]) => [p[0] + dx, p[1] + dy] as [number, number]) : undefined;
           this.store.update(inst.target as string, { points: pts } as Partial<DrawObject>);
           return;
