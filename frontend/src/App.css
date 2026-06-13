@@ -1,0 +1,21 @@
+.app { max-width: 1240px; margin: 0 auto; padding: 16px; font-family: system-ui, sans-serif; }
+.app-header { text-align: center; margin-bottom: 12px; }
+.app-header h1 { margin: 0; font-size: 24px; }
+.app-main { display: flex; justify-content: center; margin-bottom: 12px; }
+.app-footer { background: #fafafa; border-radius: 12px; padding: 12px 16px; border: 1px solid #e8e8e8; }
+
+.status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.subtitle { color: #666; flex: 1; }
+.object-count { color: #999; font-size: 12px; }
+
+.action-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.action-row button { padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; }
+.action-row button:hover { border-color: #1677ff; color: #1677ff; }
+.mic-btn { min-width: 100px; }
+.mic-btn.active { background: #fff1f0; border-color: #ff4d4f; color: #ff4d4f; }
+.debug-input { flex: 1; padding: 6px 12px; border: 1px dashed #d9d9d9; border-radius: 6px; font-size: 13px; }
+.debug-input:focus { outline: none; border-color: #1677ff; }
+
+.history-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.history-item { background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #666; }
