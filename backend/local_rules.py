@@ -4,6 +4,7 @@ from typing import Optional
 
 # ============ 颜色映射（12 色） ============
 
+# NOTE: Keep in sync with frontend/src/engine/FuzzyMatcher.ts COLORS_MAP
 COLOR_MAP: dict[str, str] = {
     "红": "#FF4444", "红色": "#FF4444", "红的": "#FF4444",
     "蓝": "#4488FF", "蓝色": "#4488FF",
@@ -83,7 +84,7 @@ def match_rules(text: str) -> Optional[dict]:
     # ---- 精确匹配：画笔切换 ----
     for keyword, instructions in BRUSH_KEYWORDS.items():
         if keyword in text and _is_short(text):
-            brush_name = "彩铅" if "pencil" in str(instructions) else "颜料笔"
+            brush_name = "彩铅" if (instructions and instructions[0].get("type") == "pencil") else "颜料笔"
             return _make_response(instructions, f"已切换为{brush_name}")
 
     # ---- 精确匹配：系统指令 ----
