@@ -1,5 +1,5 @@
 /** useVoice — PR #10 月栖白: MediaRecorder + AnalyserNode VAD */
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 export type VoiceStatus = 'idle' | 'recording' | 'transcribing' | 'error';
 
@@ -13,14 +13,31 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
   const maxTimerRef = useRef<number | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const webTextRef = useRef('');
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  const cleanup = useCallback(() => {
+    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = null; }
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    analyserRef.current = null;
+    mediaRecorderRef.current = null;
+  }, []);
 
   const start = useCallback(async (silenceMs = 2000, maxDuration = 60000) => {
     try {
+      // 先清理上一次录音资源，防止 AudioContext 累积
+      cleanup();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       // VAD
       const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
@@ -74,20 +91,34 @@ export function useVoice(onResult: (r: VoiceResult) => void, onStatusChange: (s:
         else if (hasSound && Date.now() - (silenceStart || Date.now()) >= silenceMs) { stop(); return; }
         else if (hasSound && !silenceStart) silenceStart = Date.now();
 
-        requestAnimationFrame(check);
+        rafIdRef.current = requestAnimationFrame(check);
       };
-      requestAnimationFrame(check);
+      rafIdRef.current = requestAnimationFrame(check);
 
       maxTimerRef.current = window.setTimeout(() => { if (mediaRecorderRef.current?.state === 'recording') stop(); }, maxDuration);
     } catch { onStatusChange('error'); }
-  }, []);
+  }, [cleanup, onResult, onStatusChange]);
 
   const stop = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
-    if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+    if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
+    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = null; }
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     streamRef.current?.getTracks().forEach(t => t.stop());
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    analyserRef.current = null;
     onStatusChange('transcribing');
+  }, [onStatusChange]);
+
+  // 组件卸载时彻底清理
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close();
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+      if (recognitionRef.current) recognitionRef.current.stop();
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
   }, []);
 
   return { start, stop };
