@@ -2,7 +2,7 @@
 
 > 七牛云 × XEngineer 暑期实训营 · 题目二：AI 语音绘图工具
 >
-> 版本 v2.0 · 2026-06-13（新增：完整指令集、画笔系统、本地规则引擎、LLM Prompt）
+> 版本 v2.1 · 2026-06-13（新增：渐变系统 fillGradient、渲染引擎逐笔动画方案）
 
 ---
 
@@ -158,13 +158,13 @@ voice-canvas/
 
 | action | 参数 | 说明 |
 |--------|------|------|
-| `circle` | `cx, cy, r, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画圆 |
-| `rect` | `x, y, w, h, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画矩形 |
+| `circle` | `cx, cy, r, fill?, fillGradient?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画圆 |
+| `rect` | `x, y, w, h, fill?, fillGradient?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画矩形 |
 | `line` | `x1, y1, x2, y2, stroke?, strokeWidth?, mode?, duration` | 画直线 |
 | `curve` | `points: [[x,y],...], stroke?, strokeWidth?, mode?, duration` | 贝塞尔曲线 / 手绘路径 |
-| `arc` | `cx, cy, r, startAngle, endAngle, fill?, stroke?, mode?, duration` | 圆弧 |
-| `polygon` | `points: [[x,y],...], fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 多边形 |
-| `ellipse` | `cx, cy, rx, ry, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 椭圆 |
+| `arc` | `cx, cy, r, startAngle, endAngle, fill?, fillGradient?, stroke?, mode?, duration` | 圆弧 |
+| `polygon` | `points: [[x,y],...], fill?, fillGradient?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 多边形 |
+| `ellipse` | `cx, cy, rx, ry, fill?, fillGradient?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 椭圆 |
 | `text` | `x, y, content, fontSize?, fill?, duration` | 文字 |
 
 **控制指令（即时执行，无动画）：**
@@ -202,7 +202,90 @@ voice-canvas/
 - **彩铅**：Canvas `clip()` 限定形状区域 → 循环画平行斜线（1px 细线 + 随机微小偏移）
 - **颜料笔**：Canvas `clip()` 限定形状区域 → 循环画稍宽半透明色带（`globalAlpha` 0.3-0.5），笔触间存在重叠和偏移
 
-### 5.4 完整示例："用彩铅画一朵红色简笔花"
+### 5.4 渐变系统
+
+#### fillGradient 参数
+
+绘图指令新增可选参数 `fillGradient`，与 `fill` 互斥（`fillGradient` 优先级更高）。支持两种渐变类型：
+
+**线性渐变：**
+
+| 参数 | 说明 |
+|------|------|
+| `type: "linear"` | 线性渐变 |
+| `stops` | 色标数组 `[{offset: 0.0-1.0, color: "#hex"}]` |
+| `x0, y0` | 渐变起点 |
+| `x1, y1` | 渐变终点 |
+
+**径向渐变：**
+
+| 参数 | 说明 |
+|------|------|
+| `type: "radial"` | 径向渐变 |
+| `stops` | 色标数组 `[{offset: 0.0-1.0, color: "#hex"}]` |
+| `cx, cy` | 渐变圆心 |
+| `r0` | 起始半径（通常为 0） |
+| `r1` | 终止半径（覆盖整个形状） |
+
+#### 渐变与画笔的协同工作
+
+```
+渐变方向 → 每个位置的排线从渐变色中取样
+花瓣根部(深粉) ──────────────→ 花瓣尖端(浅粉)
+     ╲╲╲╲╲╲  ╲╲╲╲╲╲  ╲╲╲╲╲╲  ╱╱╱╱╱╱  ╱╱╱╱╱╱  ╱╱╱╱╱╱
+      深粉排线    中粉排线    中浅粉排线    浅粉排线    极浅粉排线
+```
+
+渲染实现：
+```javascript
+// 每根排线的颜色从 Canvas 渐变中动态取样
+_pencilFillWithGradient(inst) {
+  const gradient = this._createGradient(inst.fillGradient); // Canvas createLinearGradient / createRadialGradient
+  // ...
+  for (each hatching line) {
+    const midX = ..., midY = ...;           // 排线中点坐标
+    ctx.strokeStyle = this._sampleGradient(gradient, midX, midY); // 取该位置的渐变色
+    // 画排线（带手绘抖动）
+  }
+}
+```
+
+#### 示例：线性渐变
+
+```json
+{ "action": "circle", "cx": 200, "cy": 200, "r": 80,
+  "fillGradient": {
+    "type": "linear",
+    "stops": [
+      { "offset": 0.0, "color": "#FF4444" },
+      { "offset": 1.0, "color": "#FFCC00" }
+    ],
+    "x0": 120, "y0": 120, "x1": 280, "y1": 280
+  },
+  "mode": "fill", "brush": "pencil", "duration": 600
+}
+```
+
+#### 示例：彩铅渐变桃花（径向渐变模拟花瓣自然深浅）
+
+```json
+{ "action": "circle", "cx": 200, "cy": 180, "r": 35,
+  "fillGradient": {
+    "type": "radial",
+    "stops": [
+      { "offset": 0.0, "color": "#EE5588" },
+      { "offset": 0.6, "color": "#FF99BB" },
+      { "offset": 1.0, "color": "#FFDDE8" }
+    ],
+    "cx": 200, "cy": 155, "r0": 0, "r1": 35
+  },
+  "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 600
+}
+```
+
+> 花瓣根部（靠近花蕊）渐变为深粉 #EE5588，边缘渐变为浅粉 #FFDDE8，模拟真实桃花色素分布。
+
+### 5.5 完整示例："用彩铅画一朵红色简笔花"
 
 ```json
 {
@@ -512,10 +595,10 @@ def parse_llm_response(data: dict) -> dict:
 
 ## 十、待细化事项
 
-- [x] JSON 指令集完整定义（所有 action 类型及其参数）
+- [x] JSON 指令集完整定义（所有 action 类型及其参数 + 渐变系统）
 - [x] 本地规则引擎覆盖的指令清单
 - [x] LLM prompt 详细设计
-- [ ] Canvas 渲染引擎逐笔动画方案
+- [x] Canvas 渲染引擎逐笔动画方案
 - [ ] 前端 UI 布局设计
 - [ ] 错误处理 & 降级策略细节
 - [ ] 设计文档（提交物）大纲
