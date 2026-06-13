@@ -5,6 +5,7 @@
 
 import type {
   DrawInstruction,
+  DrawObject,
   DrawMode,
   BrushType,
   FillGradient,
@@ -502,13 +503,13 @@ export class CanvasRenderer {
    * PR #11: 根据 ObjectStore 的对象列表瞬间重绘全部（无动画）
    * 用于对象编辑后（update/move/delete）刷新画布
    */
-  drawObjects(objects: DrawInstruction[]): void {
+  drawObjects(objects: DrawObject[]): void {
     this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     for (const obj of objects) {
-      this.drawInstant(obj);
+      this.drawInstant(obj as unknown as DrawInstruction);
     }
-    // 同步 renderer 内部历史（后续 undo 操作保持一致）
+    // 同步 renderer 内部历史，保证后续 undo 一致（注意：清空 redoStack）
     this.history = objects.map(o => ({ ...o, action: o.type ?? 'circle' } as DrawInstruction));
     this.redoStack = [];
   }

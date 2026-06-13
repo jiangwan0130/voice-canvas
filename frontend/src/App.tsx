@@ -141,7 +141,6 @@ function App() {
   const handleClear = () => {
     storeRef.current.clear();
     historyMgrRef.current.clear();
-    canvasRef.current?.clear();
     lastActionRef.current = null;
     setHistory([]);
     setObjectCount(0);

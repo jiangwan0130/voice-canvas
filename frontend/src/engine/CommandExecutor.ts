@@ -43,7 +43,7 @@ export class CommandExecutor {
       if (action === 'update_object') {
         const params = inst.params as Record<string, unknown> ?? {};
         this.store.update(inst.target as string, params as any);
-        this.renderer.drawObjects(this.store.getAll() as any);
+        this.renderer.drawObjects(this.store.getAll());
         return;
       } else if (action === 'move_object') {
         const obj = this.store.get(inst.target as string);
@@ -69,11 +69,11 @@ export class CommandExecutor {
         }
         this.store.update(inst.target as string, updates as any);
         // 对象移动后重绘
-        this.renderer.drawObjects(this.store.getAll() as any);
+        this.renderer.drawObjects(this.store.getAll());
         return;
       } else if (action === 'delete_object') {
         this.store.delete(inst.target as string);
-        this.renderer.drawObjects(this.store.getAll() as any);
+        this.renderer.drawObjects(this.store.getAll());
         return;
       }
     }
@@ -81,7 +81,7 @@ export class CommandExecutor {
     // undo — 通过 HistoryManager 恢复 + 重绘
     if (action === 'undo') {
       const snap = this.history.undo();
-      if (snap) { this.store.restore(snap.objects); this.renderer.drawObjects(this.store.getAll() as any); }
+      if (snap) { this.store.restore(snap.objects); this.renderer.drawObjects(this.store.getAll()); }
       return;
     }
 
@@ -105,7 +105,7 @@ export class CommandExecutor {
     const snap = this.history.undo();
     if (!snap) return false;
     this.store.restore(snap.objects);
-    this.renderer.drawObjects(this.store.getAll() as any);
+    this.renderer.drawObjects(this.store.getAll());
     return true;
   }
 }
