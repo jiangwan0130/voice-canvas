@@ -5,10 +5,13 @@ PR #9 月栖白: LLM 客户端 + JSON 修复 + 安全校验
 """
 import json
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from config import CANVAS_WIDTH, CANVAS_HEIGHT, ALLOWED_ORIGINS
 from llm_client import call_llm
@@ -23,7 +26,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 速率限制器
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="语绘 Voice Canvas API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# 音频上传大小上限
+MAX_AUDIO_SIZE = 10 * 1024 * 1024  # 10 MB
 
 app.add_middleware(
     CORSMiddleware,
@@ -99,7 +110,8 @@ def health():
 # ============ 语音识别 (芝士番薯) ============
 
 @app.post("/api/asr")
-async def transcribe_audio(audio: UploadFile = File(...)):
+@limiter.limit("20/minute")
+async def transcribe_audio(request: Request, audio: UploadFile = File(...)):
     """
     阿里云 Paraformer 语音识别。
     失败时返回 error + fallback: webspeech，前端降级 Web Speech API。
@@ -108,10 +120,14 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         audio_data = await audio.read()
         if not audio_data:
             raise HTTPException(400, "音频数据为空")
+        if len(audio_data) > MAX_AUDIO_SIZE:
+            raise HTTPException(413, f"音频文件过大，最大支持 {MAX_AUDIO_SIZE // (1024*1024)}MB")
         text = await paraformer_asr.transcribe(audio_data)
         if not text:
             return {"text": "", "source": "paraformer", "note": "识别结果为空"}
         return {"text": text, "source": "paraformer"}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"text": "", "source": "error", "error": str(e), "fallback": "webspeech"}
 
@@ -119,7 +135,8 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 # ============ 绘图指令生成 (协作) ============
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate_instructions(req: GenerateRequest):
+@limiter.limit("10/minute")
+async def generate_instructions(request: Request, req: GenerateRequest):
     text = req.text.strip()
     if not text:
         return GenerateResponse(reply="请说点什么吧", instructions=[], source="local")
