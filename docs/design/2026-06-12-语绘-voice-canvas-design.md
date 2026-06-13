@@ -2,7 +2,7 @@
 
 > 七牛云 × XEngineer 暑期实训营 · 题目二：AI 语音绘图工具
 >
-> 版本 v2.1 · 2026-06-13（新增：渐变系统 fillGradient、渲染引擎逐笔动画方案）
+> 版本 v3.0 · 2026-06-13（新增：前端 UI 布局、错误处理 & 降级策略，设计文档主体完成）
 
 ---
 
@@ -593,19 +593,197 @@ def parse_llm_response(data: dict) -> dict:
 
 ---
 
-## 十、待细化事项
+## 十、前端 UI 布局设计
+
+### 10.1 页面布局
+
+```
+┌──────────────────────────────────────────┐
+│              语绘 Voice Canvas            │ ← 顶栏（36px）
+│  🖌 彩铅 │ 🎨 #FF4444 │ 📏 3px │ ↩ 撤销  │ ← 状态指示条（32px）
+├──────────────────────────────────────────┤
+│                                          │
+│              Canvas 画布                  │
+│             800 × 500                    │
+│             (浅灰背景 #F5F5F5)             │
+│                                          │
+│      "画一朵简笔花"  ← 等等我帮你画...      │ ← 内嵌提示（半透明叠加）
+│                                          │
+├──────────────────────────────────────────┤
+│  🟡 识别中... | 刚刚听到："画一朵简笔花"   │ ← 状态栏（28px）
+├──────────────────────────────────────────┤
+│           [ 🎤 按住说话 ]                 │ ← 录音按钮（48px，主交互区）
+│      点击开始录音 · 再次点击结束           │
+└──────────────────────────────────────────┘
+```
+
+### 10.2 React 组件树
+
+```
+App.jsx
+├── Canvas.jsx          # 画布组件
+│   └── canvas ref      # Renderer 实例挂载点
+├── VoiceBar.jsx        # 底部控制区
+│   ├── 状态指示        # 当前画笔/颜色/线宽
+│   ├── 识别文本显示    # "刚刚听到：..."
+│   └── 录音按钮        # 按住/点击触发录音
+└── CommandHistory.jsx  # 可折叠指令历史面板
+```
+
+### 10.3 组件职责
+
+| 组件 | 职责 | 关键 Props/State |
+|------|------|------------------|
+| `App.jsx` | 全局状态管理，协调前后端通信 | `status`, `history`, `currentBrush` |
+| `Canvas.jsx` | 管理 `<canvas>` ref，初始化 Renderer 实例 | `width=800`, `height=500` |
+| `VoiceBar.jsx` | 录音控制、状态显示、识别文本回显 | `isRecording`, `statusText` |
+| `CommandHistory.jsx` | 指令列表展示，最新指令高亮 | `instructions[]` |
+
+### 10.4 交互状态机
+
+```
+                    ┌── 点击录音按钮 ──→ RECORDING
+                    │                      │
+                    │              再次点击/松开 ──→ TRANSCRIBING
+                    │                      │
+                    │            POST /api/asr 完成 ──→ GENERATING (复杂指令)
+                    │            POST /api/generate ──→ DRAWING    (简单指令直达)
+                    │                      │
+                    ▼                      ▼
+                  IDLE ←──────────── 动画播放完毕
+                    ▲
+                    │
+              PAUSED ←── "暂停"指令
+                    │
+                    └── "继续"指令 ──→ DRAWING
+```
+
+### 10.5 状态与 UI 映射
+
+| 状态 | 录音按钮 | 状态栏文字 | Canvas 内提示 |
+|------|----------|------------|---------------|
+| IDLE | 🎤 按住说话 | 准备就绪 | — |
+| RECORDING | 🔴 松开结束 | 正在聆听... | — |
+| TRANSCRIBING | ⏳ | 识别中... | — |
+| GENERATING | ⏳ | AI 正在理解... | "等等我帮你想..." |
+| DRAWING | ⏳ (禁用) | 正在绘制... | 当前识别的文本 |
+| PAUSED | ▶ 继续 | 已暂停 | "已暂停，说'继续'恢复" |
+| ERROR | 🎤 重试 | 错误信息 | — |
+
+---
+
+## 十一、错误处理 & 降级策略
+
+### 11.1 分层错误处理
+
+```
+┌──────────────────────────────────────────────────┐
+│                   错误分类 & 对策                  │
+├──────────┬─────────────────┬─────────────────────┤
+│   层级    │      场景        │        处理          │
+├──────────┼─────────────────┼─────────────────────┤
+│  网络层   │ 后端不可达        │ 前端显示"网络异常"    │
+│          │ 请求超时          │ 3秒超时 + 重试按钮    │
+├──────────┼─────────────────┼─────────────────────┤
+│  语音层   │ 七牛云 ASR 失败   │ 自动降级 Web Speech   │
+│          │ Web Speech 也失败 │ "未识别到语音，请重试" │
+│          │ 识别结果为空       │ "请再说一遍"          │
+├──────────┼─────────────────┼─────────────────────┤
+│  LLM 层  │ API 超时(15s)    │ "AI 思考超时，请简化指令"│
+│          │ API 异常/欠费     │ 降级方案 A: 纯 LLM 重试 │
+│          │ JSON 解析失败     │ parser 三道防线兜底    │
+│          │ 指令 action 非法  │ 跳过非法指令，执行合法的  │
+├──────────┼─────────────────┼─────────────────────┤
+│  渲染层   │ 单条指令执行异常   │ catch → 跳过，记录日志 │
+│          │ Canvas 上下文丢失  │ 重建 Renderer 实例    │
+└──────────┴─────────────────┴─────────────────────┘
+```
+
+### 11.2 降级链路
+
+```
+语音识别降级链:
+  七牛云 ASR ──失败──→ Web Speech API ──失败──→ 提示"请重试"
+       │                    │
+       └── source: "qiniu"  └── source: "webspeech"
+
+绘图指令降级链:
+  LLM (方案B混合路由) ──失败──→ 方案A纯LLM重试 ──失败──→ 提示"请换个说法"
+```
+
+### 11.3 前端错误处理（api.js）
+
+```javascript
+// src/services/api.js
+const ASR_TIMEOUT = 5000;
+const LLM_TIMEOUT = 15000;
+
+async function apiCall(url, options, timeout) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('请求超时');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function transcribe(audioBlob) {
+  try {
+    return await apiCall('/api/asr', { method: 'POST', body: formData }, ASR_TIMEOUT);
+  } catch {
+    // 降级 Web Speech API
+    return await webSpeechFallback(audioBlob);
+  }
+}
+
+export async function generate(text) {
+  return await apiCall('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  }, LLM_TIMEOUT);
+}
+```
+
+### 11.4 用户可见的错误提示
+
+| 错误 | 用户看到 |
+|------|----------|
+| 麦克风权限未授权 | "请允许浏览器使用麦克风" + 引导按钮 |
+| 未识别到语音 | "没有听清，请重试" |
+| LLM 超时 | "AI 想得太久了，试试说得简单一点？" |
+| LLM 返回异常 | "AI 画不出来，换个说法试试？" |
+| 网络断开 | "网络连接异常，请检查网络" |
+
+### 11.5 兜底保底原则
+
+1. **永不白屏**：任何错误都展示具体提示，不崩溃
+2. **画布状态保持**：错误不影响已绘制内容，用户可继续操作
+3. **3 次连续失败 → 明确提示**：建议用户检查网络/API Key/重试
+4. **所有错误记录日志**：`console.error` + 错误时间戳，方便 debug demo 时排查
+
+---
+
+## 十二、待细化事项
 
 - [x] JSON 指令集完整定义（所有 action 类型及其参数 + 渐变系统）
 - [x] 本地规则引擎覆盖的指令清单
 - [x] LLM prompt 详细设计
 - [x] Canvas 渲染引擎逐笔动画方案
-- [ ] 前端 UI 布局设计
-- [ ] 错误处理 & 降级策略细节
+- [x] 前端 UI 布局设计
+- [x] 错误处理 & 降级策略细节
 - [ ] 设计文档（提交物）大纲
 
 ---
 
-## 十一、提交物清单
+## 十三、提交物清单
 
 根据题目要求，需提交：
 
