@@ -4,23 +4,30 @@ PR #9 芝士番薯: ASR + 路由 + 本地规则引擎
 PR #9 月栖白: LLM 客户端 + JSON 修复 + 安全校验
 """
 import json
+import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
-from config import CANVAS_WIDTH, CANVAS_HEIGHT
+from config import CANVAS_WIDTH, CANVAS_HEIGHT, ALLOWED_ORIGINS
 from llm_client import call_llm
 from json_repair import repair_pipeline
 from command_parser import validate_instructions
 from asr.paraformer_asr import ParaformerASR
 from router import route
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="语绘 Voice Canvas API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS.split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,11 +46,19 @@ class GridObject(BaseModel):
     role: Optional[str] = None
     groupId: Optional[str] = None
     cellId: Optional[str] = None
-    cx: Optional[float] = None; cy: Optional[float] = None; r: Optional[float] = None
-    x: Optional[float] = None; y: Optional[float] = None; w: Optional[float] = None; h: Optional[float] = None
-    x1: Optional[float] = None; y1: Optional[float] = None
-    x2: Optional[float] = None; y2: Optional[float] = None
-    fill: Optional[str] = None; color: Optional[str] = None
+    cx: Optional[float] = None
+    cy: Optional[float] = None
+    r: Optional[float] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
+    w: Optional[float] = None
+    h: Optional[float] = None
+    x1: Optional[float] = None
+    y1: Optional[float] = None
+    x2: Optional[float] = None
+    y2: Optional[float] = None
+    fill: Optional[str] = None
+    color: Optional[str] = None
     class Config: extra = "allow"
 
 class GridCell(BaseModel):
@@ -135,14 +150,14 @@ async def generate_instructions(req: GenerateRequest):
         result = await call_llm(text, grid_json, last_action_str)
         raw_output = json.dumps(result, ensure_ascii=False)
     except Exception as e:
-        print(f"[LLM] call failed: {e}")
+        logger.error(f"LLM call failed: {e}")
 
     # 3. 修复管道 (月栖白)
     parsed = None
     if raw_output:
         parsed, repair_err = repair_pipeline(raw_output)
         if repair_err:
-            print(f"[Repair] {repair_err}")
+            logger.warning(f"JSON repair: {repair_err}")
 
     # 4. 提取 + 校验 (月栖白)
     instructions_raw = parsed.get("instructions", []) if parsed else []
