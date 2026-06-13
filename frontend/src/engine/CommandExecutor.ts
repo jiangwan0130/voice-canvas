@@ -43,6 +43,7 @@ export class CommandExecutor {
       if (action === 'update_object') {
         const params = inst.params as Record<string, unknown> ?? {};
         this.store.update(inst.target as string, params as any);
+        return;
       } else if (action === 'move_object') {
         const obj = this.store.get(inst.target as string);
         if (!obj) return;

@@ -9,10 +9,11 @@ import type { CanvasHandle } from './components/Canvas';
 import { ObjectStore } from './engine/ObjectStore';
 import { HistoryManager } from './engine/HistoryManager';
 import { CommandExecutor } from './engine/CommandExecutor';
-import { useVoice, type VoiceStatus } from './hooks/useVoice';
+import { useVoice } from './hooks/useVoice';
 import { speak } from './hooks/useSpeechFeedback';
 import { transcribeAudio, generateInstructions } from './services/api';
-import type { DrawInstruction, CanvasState, LastAction } from './types/commands';
+import type { CanvasState, LastAction } from './types/commands';
+import type { VoiceStatus } from './hooks/useVoice';
 import './App.css';
 
 type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
@@ -27,6 +28,7 @@ function App() {
   const executorRef = useRef<CommandExecutor | null>(null);
   const lastActionRef = useRef<LastAction | null>(null);
   const [debugText, setDebugText] = useState('');
+  const [objectCount, setObjectCount] = useState(0);
 
   // ---- 主流程 ----
 
@@ -60,6 +62,7 @@ function App() {
       // TTS 反馈
       if (resp.reply) speak(resp.reply);
       setSubtitle(resp.reply || '完成');
+      setObjectCount(storeRef.current.count);
 
     } catch (e) {
       console.error('[App] error:', e);
@@ -129,13 +132,10 @@ function App() {
   };
 
   const handleUndo = () => {
-    if (executorRef.current) {
-      const ok = executorRef.current.redoUndo();
-      // 重绘
-      const store = storeRef.current;
-      // PR #11: 全量重绘
-    }
+    // 两个栈独立但操作次数一致，保持松同步。PR #11 统一。
+    executorRef.current?.redoUndo();
     canvasRef.current?.undo();
+    setObjectCount(storeRef.current.count);
     setSubtitle('已撤销');
   };
 
@@ -145,6 +145,7 @@ function App() {
     canvasRef.current?.clear();
     lastActionRef.current = null;
     setHistory([]);
+    setObjectCount(0);
     setSubtitle('画布已清空');
   };
 
@@ -186,7 +187,7 @@ function App() {
           <span className="status-dot" style={{ background: statusColors[status] }} />
           <span>{statusLabels[status]}</span>
           <span className="subtitle">{subtitle}</span>
-          <span className="object-count">对象: {storeRef.current.count}</span>
+          <span className="object-count">对象: {objectCount}</span>
         </div>
 
         <div className="action-row">
