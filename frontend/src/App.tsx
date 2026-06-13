@@ -15,6 +15,7 @@ import { transcribeAudio, generateInstructions } from './services/api';
 import type { CanvasState, LastAction } from './types/commands';
 import type { VoiceStatus } from './hooks/useVoice';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
@@ -177,15 +178,17 @@ function App() {
       </header>
 
       <main className="app-main">
-        <Canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          background="#FFFFFF"
-          onStatusChange={() => {}}
-          onComplete={() => setStatus('idle')}
-          onReady={handleCanvasReady}
-        />
+        <ErrorBoundary>
+          <Canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            background="#FFFFFF"
+            onStatusChange={() => {}}
+            onComplete={() => setStatus('idle')}
+            onReady={handleCanvasReady}
+          />
+        </ErrorBoundary>
       </main>
 
       <footer className="app-footer">
