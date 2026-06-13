@@ -15,12 +15,9 @@ export class HistoryManager {
   private redoStack: Snapshot[] = [];
   private maxSize = 50;
 
-  /** 在执行指令前保存快照（深拷贝，防止 points 等数组被后续操作污染） */
+  /** 保存快照（ObjectStore.snapshot() 已深拷贝，直接存储） */
   save(objects: DrawObject[], action: string): void {
-    this.undoStack.push({
-      objects: objects.map(o => ({ ...o, points: o.points ? o.points.map((p: [number, number]) => [p[0], p[1]] as [number, number]) : undefined })),
-      action,
-    });
+    this.undoStack.push({ objects, action });
     if (this.undoStack.length > this.maxSize) {
       this.undoStack.shift();
     }
@@ -40,11 +37,8 @@ export class HistoryManager {
   redo(currentObjects: DrawObject[], currentAction: string): { objects: DrawObject[]; action: string } | null {
     const snap = this.redoStack.pop();
     if (!snap) return null;
-    // 保存 redo 前的当前状态（深拷贝 points），以便后续 undo 可以回到这里
-    this.undoStack.push({
-      objects: currentObjects.map(o => ({ ...o, points: o.points ? o.points.map((p: [number, number]) => [p[0], p[1]] as [number, number]) : undefined })),
-      action: currentAction,
-    });
+    // currentObjects 已由调用方的 store.snapshot() 深拷贝，直接存储
+    this.undoStack.push({ objects: currentObjects, action: currentAction });
     return snap;
   }
 

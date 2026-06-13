@@ -97,9 +97,9 @@ export class ObjectStore {
     objects.forEach(o => this.objects.set(o.id, deepCopyObject(o)));
   }
 
-  /** 返回对象数组的快照引用。深拷贝由 HistoryManager.save() 统一负责。 */
+  /** 返回对象数组的深拷贝快照，可直接保存或恢复。调用方无需再次深拷贝。 */
   snapshot(): DrawObject[] {
-    return this.getAll();
+    return this.getAll().map(o => deepCopyObject(o));
   }
 
   toGridState(): GridState {
@@ -147,8 +147,8 @@ export class ObjectStore {
   }
 }
 
-/** 深拷贝对象（处理 points 等嵌套数组） */
-function deepCopyObject(o: DrawObject): DrawObject {
+/** 深拷贝对象（处理 points 等嵌套数组），供 HistoryManager 等模块复用 */
+export function deepCopyObject(o: DrawObject): DrawObject {
   return {
     ...o,
     points: o.points ? o.points.map((p: [number, number]) => [p[0], p[1]] as [number, number]) : undefined,

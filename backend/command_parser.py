@@ -52,6 +52,9 @@ DEFAULT_PARAMS: dict[str, dict] = {
 HEX_RE = re.compile(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$')
 CSS_COLORS = {'red','blue','green','yellow','orange','purple','pink','black','white','gray','grey','brown','cyan','magenta','transparent'}
 
+# 坐标参数键名常量，避免每次请求重新创建 set
+COORD_KEYS: frozenset[str] = frozenset({'x','y','cx','cy','x1','y1','x2','y2','x3','y3','w','h','r','rx','ry','dx','dy'})
+
 
 def _is_valid_color(c: str) -> bool:
     return bool(HEX_RE.match(c)) or c.lower() in CSS_COLORS
@@ -83,8 +86,7 @@ def validate_instructions(instructions: list[dict], existing_object_ids: set) ->
                 params[k] = v
 
         # 4. 坐标边界钳位
-        coord_keys = {'x','y','cx','cy','x1','y1','x2','y2','x3','y3','w','h','r','rx','ry','dx','dy'}
-        for k in coord_keys:
+        for k in COORD_KEYS:
             if k in params and isinstance(params[k], (int, float)):
                 if k in ('w','h','r','rx','ry'):
                     params[k] = max(1, min(params[k], max(CANVAS_WIDTH, CANVAS_HEIGHT)))

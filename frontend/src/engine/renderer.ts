@@ -154,7 +154,10 @@ export class CanvasRenderer {
         this.clear();
         break;
       case 'undo':
-        // undo 由 CommandExecutor + HistoryManager 统一管理，Renderer 不处理
+      case 'redo':
+        // undo/redo 由 CommandExecutor + HistoryManager 统一管理，Renderer 不处理
+        // 如果走到了这里（如 fallback 路径），记录警告
+        console.warn(`[Renderer] ${inst.action} 指令应在 CommandExecutor 层处理，已忽略`);
         break;
       case 'wait':
         await this.wait((inst.duration as number) ?? 300);

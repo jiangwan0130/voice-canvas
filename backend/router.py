@@ -4,20 +4,10 @@
   文本 → 本地规则引擎（简单指令）→ 即时返回
        → LLM 客户端（复杂绘图指令）→ 生成 JSON 指令序列
 """
+from typing import Literal
 from local_rules import match_rules
 
-
-def is_local_command(text: str) -> bool:
-    """
-    判断是否为本地可处理的简单指令。
-
-    规则：
-    - 长度 ≤ 10 字（复杂绘图指令通常更长）
-    - 包含本地规则引擎可识别的关键词
-    - 注意：返回 True 只是"尝试"，match_rules 返回 None 才走 LLM
-    """
-    result = match_rules(text)
-    return result is not None
+SourceType = Literal["local", "llm"]
 
 
 def route(text: str) -> dict:
