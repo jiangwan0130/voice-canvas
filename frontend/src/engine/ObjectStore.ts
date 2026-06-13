@@ -92,11 +92,11 @@ export class ObjectStore {
       const num = parseInt(o.id.replace('obj_', ''), 10);
       return Math.max(max, isNaN(num) ? 0 : num);
     }, 0);
-    objects.forEach(o => this.objects.set(o.id, { ...o }));
+    objects.forEach(o => this.objects.set(o.id, deepCopyObject(o)));
   }
 
   snapshot(): DrawObject[] {
-    return this.getAll().map(o => ({ ...o }));
+    return this.getAll().map(o => deepCopyObject(o));
   }
 
   toGridState(): GridState {
@@ -135,11 +135,19 @@ export class ObjectStore {
       }
       case 'text':
         cx = obj.x ?? 0;
-        cy = (obj.y ?? 0) - (obj.fontSize ?? 24) / 2;
+        cy = obj.y ?? 0;  // baseline 坐标本身已足够精准，无需偏移
         break;
     }
     const c = Math.min(Math.floor(cx / (this.width / GRID_COLS)), GRID_COLS - 1);
     const r = Math.min(Math.floor(cy / (this.height / GRID_ROWS)), GRID_ROWS - 1);
     return `${r},${c}`;
   }
+}
+
+/** 深拷贝对象（处理 points 等嵌套数组） */
+function deepCopyObject(o: DrawObject): DrawObject {
+  return {
+    ...o,
+    points: o.points ? o.points.map((p: [number, number]) => [p[0], p[1]] as [number, number]) : undefined,
+  };
 }
