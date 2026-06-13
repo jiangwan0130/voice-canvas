@@ -8,6 +8,7 @@ import type { ObjectStore } from './ObjectStore';
 
 const KNOWN_LABELS = ['太阳','树','树干','树冠','房子','墙体','屋顶','门','窗','花','花心','花瓣','山','海','船','星星','云'];
 
+// NOTE: Keep in sync with backend/local_rules.py COLOR_MAP
 const COLORS_MAP: Record<string, string> = {
   '红': '#FF4444', '蓝': '#4488FF', '绿': '#228B22',
   '黄': '#FFCC00', '橙': '#FF8800', '紫': '#9944FF',

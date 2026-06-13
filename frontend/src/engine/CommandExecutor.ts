@@ -1,9 +1,20 @@
 /** CommandExecutor — PR #10 月栖白: 接收后端指令，交给 Renderer + Store 执行 */
-import type { DrawInstruction } from '../types/commands';
+import type { DrawInstruction, DrawObject, ShapeType } from '../types/commands';
 import type { CanvasRenderer } from './renderer';
 import { ObjectStore } from './ObjectStore';
 import { HistoryManager } from './HistoryManager';
 import { fuzzyFind } from './FuzzyMatcher';
+
+const SHAPE_ACTIONS = ['circle','rect','line','curve','polygon','ellipse','arc','text'] as const;
+
+/** 将 DrawInstruction 的 action 字段映射为 DrawObject 兼容的 type 字段 */
+function instructionToDrawParams(inst: DrawInstruction): Partial<DrawObject> {
+  const { action, ...rest } = inst;
+  if ((SHAPE_ACTIONS as readonly string[]).includes(action)) {
+    return { ...rest, type: action as ShapeType } as Partial<DrawObject>;
+  }
+  return rest as Partial<DrawObject>;
+}
 
 export class CommandExecutor {
   constructor(
@@ -26,9 +37,8 @@ export class CommandExecutor {
     const { action } = inst;
 
     // 对象管理 — 指令执行前自动注册到 ObjectStore
-    if (['circle','rect','line','curve','polygon','ellipse','arc','text'].includes(action)) {
-      const obj = this.store.add(inst as any);
-      // 修改指令携带的对象 ID，renderer 不感知 ID
+    if ((SHAPE_ACTIONS as readonly string[]).includes(action)) {
+      this.store.add(instructionToDrawParams(inst) as Omit<DrawObject, 'id' | 'cellId'>);
     }
 
     // 对象编辑 — 模糊匹配 target
@@ -36,13 +46,13 @@ export class CommandExecutor {
       let target = inst.target as string | undefined;
       if (!target || !this.store.get(target)) {
         const matched = fuzzyFind(userText, this.store);
-        if (matched) (inst as any).target = matched;
+        if (matched) inst.target = matched;
         else { console.warn(`[Executor] target not found: ${target}`); return; }
       }
 
       if (action === 'update_object') {
         const params = inst.params as Record<string, unknown> ?? {};
-        this.store.update(inst.target as string, params as any);
+        this.store.update(inst.target as string, params as Partial<DrawObject>);
         this.renderer.drawObjects(this.store.getAll());
         return;
       } else if (action === 'move_object') {
@@ -60,14 +70,14 @@ export class CommandExecutor {
           updates.x2 = (obj.x2 ?? 0) + dx; updates.y2 = (obj.y2 ?? 0) + dy;
         } else if (obj.type === 'polygon') {
           const pts = obj.points ? obj.points.map((p: [number, number]) => [p[0] + dx, p[1] + dy] as [number, number]) : undefined;
-          this.store.update(inst.target as string, { points: pts } as any);
+          this.store.update(inst.target as string, { points: pts } as Partial<DrawObject>);
           return;
         } else if (obj.type === 'curve') {
           const pts = obj.points ? obj.points.map((p: [number, number]) => [p[0] + dx, p[1] + dy] as [number, number]) : undefined;
-          this.store.update(inst.target as string, { points: pts } as any);
+          this.store.update(inst.target as string, { points: pts } as Partial<DrawObject>);
           return;
         }
-        this.store.update(inst.target as string, updates as any);
+        this.store.update(inst.target as string, updates as Partial<DrawObject>);
         // 对象移动后重绘
         this.renderer.drawObjects(this.store.getAll());
         return;

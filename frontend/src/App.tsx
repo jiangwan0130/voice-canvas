@@ -14,6 +14,7 @@ import { speak } from './hooks/useSpeechFeedback';
 import { transcribeAudio, generateInstructions } from './services/api';
 import type { CanvasState, LastAction } from './types/commands';
 import type { VoiceStatus } from './hooks/useVoice';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
 import './App.css';
 
 type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
@@ -23,7 +24,7 @@ function App() {
   const [subtitle, setSubtitle] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const canvasRef = useRef<CanvasHandle>(null);
-  const storeRef = useRef(new ObjectStore());
+  const storeRef = useRef(new ObjectStore(CANVAS_WIDTH, CANVAS_HEIGHT));
   const historyMgrRef = useRef(new HistoryManager());
   const executorRef = useRef<CommandExecutor | null>(null);
   const lastActionRef = useRef<LastAction | null>(null);
@@ -178,8 +179,8 @@ function App() {
       <main className="app-main">
         <Canvas
           ref={canvasRef}
-          width={1200}
-          height={800}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
           background="#FFFFFF"
           onStatusChange={() => {}}
           onComplete={() => setStatus('idle')}
