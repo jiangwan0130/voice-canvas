@@ -97,12 +97,11 @@ speak: { "action":"speak", "text":"..." }
 
 async def call_llm(user_text: str, grid_json: str = "{}", last_action: str = "无") -> dict:
     """调用 DeepSeek via 七牛云 MaaS，返回 {{reply, instructions}}"""
-    prompt = SYSTEM_PROMPT.format(
-        canvas_width=CANVAS_WIDTH,
-        canvas_height=CANVAS_HEIGHT,
-        grid_json=grid_json,
-        last_action=last_action,
-    )
+    prompt = (SYSTEM_PROMPT
+        .replace('{canvas_width}', str(CANVAS_WIDTH))
+        .replace('{canvas_height}', str(CANVAS_HEIGHT))
+        .replace('{grid_json}', grid_json)
+        .replace('{last_action}', last_action))
 
     async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.post(

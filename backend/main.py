@@ -161,10 +161,10 @@ def summarize_grid(grid_state: GridState) -> str:
                 entry["rx"] = obj.rx
             if obj.ry is not None:
                 entry["ry"] = obj.ry
-            # 颜色 — 编辑指令需要
-            if obj.fill:
+            # 颜色 — 仅发送有意义的填充色（跳过透明/空字符串）
+            if obj.fill and obj.fill != "transparent":
                 entry["fill"] = obj.fill
-            if obj.stroke:
+            if obj.stroke and obj.stroke != "transparent":
                 entry["stroke"] = obj.stroke
 
             objects_summary.append(entry)
