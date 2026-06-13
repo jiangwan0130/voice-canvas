@@ -132,11 +132,10 @@ function App() {
   };
 
   const handleUndo = () => {
-    // 两个栈独立但操作次数一致，保持松同步。PR #11 统一。
-    executorRef.current?.redoUndo();
-    canvasRef.current?.undo();
-    setObjectCount(storeRef.current.count);
-    setSubtitle('已撤销');
+    if (executorRef.current?.redoUndo()) {
+      setObjectCount(storeRef.current.count);
+      setSubtitle('已撤销');
+    }
   };
 
   const handleClear = () => {
