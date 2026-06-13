@@ -12,7 +12,7 @@ ALLOWED_ACTIONS = {
     # 对象编辑
     'update_object', 'move_object', 'delete_object',
     # 控制指令
-    'setColor', 'setWidth', 'setBrush', 'clear', 'undo', 'wait', 'speak',
+    'setColor', 'setWidth', 'setBrush', 'clear', 'undo', 'redo', 'pause', 'resume', 'wait', 'speak',
 }
 
 # 每种 action 的必填参数

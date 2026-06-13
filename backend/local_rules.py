@@ -62,8 +62,8 @@ WIDTH_PATTERNS: list[tuple[str, int]] = [
 ]
 
 # 线条粗细明确值
-WIDTH_SPEICIFICS: list[tuple[str, int]] = [
-    (r"线条粗细[设为]?(\d+)", 0),  # 捕获组取值
+WIDTH_SPECIFICS: list[tuple[str, int]] = [
+    (r"线条粗细(?:设为)?(\d+)", 0),  # 捕获组取值
 ]
 
 
@@ -109,7 +109,7 @@ def match_rules(text: str) -> Optional[dict]:
             )
 
     # ---- 线条粗细明确值 ----
-    for pattern, _ in WIDTH_SPEICIFICS:
+    for pattern, _ in WIDTH_SPECIFICS:
         m = re.search(pattern, text)
         if m and _is_short(text):
             value = int(m.group(1))

@@ -15,7 +15,6 @@ from json_repair import repair_pipeline
 from command_parser import validate_instructions
 from asr.qiniu_asr import QiniuASR
 from router import route
-from local_rules import match_rules
 
 app = FastAPI(title="语绘 Voice Canvas API")
 
@@ -150,15 +149,8 @@ async def generate_instructions(req: GenerateRequest):
     reply = parsed.get("reply", "") if parsed else ""
     safe = validate_instructions(instructions_raw, existing_ids)
 
-    # 5. LLM 完全失败 → 规则兜底
+    # 5. LLM 完全失败 → 友好提示
     if not safe:
-        fallback = match_rules(text)
-        if fallback:
-            return GenerateResponse(
-                reply=fallback.get("reply", "好的"),
-                instructions=fallback.get("instructions", []),
-                source="local",
-            )
         return GenerateResponse(
             reply=reply or "抱歉，我没有理解那个操作，请再说一遍",
             instructions=[],
