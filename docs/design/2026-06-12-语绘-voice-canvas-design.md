@@ -2,7 +2,7 @@
 
 > 七牛云 × XEngineer 暑期实训营 · 题目二：AI 语音绘图工具
 >
-> 版本 v1.0 · 2026-06-12
+> 版本 v2.0 · 2026-06-13（新增：完整指令集、画笔系统、本地规则引擎、LLM Prompt）
 
 ---
 
@@ -148,29 +148,322 @@ voice-canvas/
 
 ---
 
-## 五、JSON 指令序列设计（待细化）
+## 五、JSON 指令集完整定义
 
-统一绘图指令格式，无论本地规则还是 LLM 都输出此格式：
+这是前后端之间的**唯一协议**——后端不管走本地规则还是 LLM，最终都输出这套指令，前端 renderer.js 只认这一种格式。
+
+### 5.1 指令总览
+
+**绘图指令（有动画）：**
+
+| action | 参数 | 说明 |
+|--------|------|------|
+| `circle` | `cx, cy, r, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画圆 |
+| `rect` | `x, y, w, h, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 画矩形 |
+| `line` | `x1, y1, x2, y2, stroke?, strokeWidth?, mode?, duration` | 画直线 |
+| `curve` | `points: [[x,y],...], stroke?, strokeWidth?, mode?, duration` | 贝塞尔曲线 / 手绘路径 |
+| `arc` | `cx, cy, r, startAngle, endAngle, fill?, stroke?, mode?, duration` | 圆弧 |
+| `polygon` | `points: [[x,y],...], fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 多边形 |
+| `ellipse` | `cx, cy, rx, ry, fill?, stroke?, strokeWidth?, mode?, brush?, fillAngle?, fillDensity?, duration` | 椭圆 |
+| `text` | `x, y, content, fontSize?, fill?, duration` | 文字 |
+
+**控制指令（即时执行，无动画）：**
+
+| action | 参数 | 说明 |
+|--------|------|------|
+| `setColor` | `value: "#FF0000", duration: 0` | 设置后续绘图颜色 |
+| `setWidth` | `value: 3, duration: 0` | 设置线条粗细 |
+| `setBrush` | `type: "pencil"\|"paint", fillAngle?, fillDensity?, duration: 0` | 切换画笔类型 |
+| `clear` | `duration: 0` | 清空整个画布 |
+| `undo` | `duration: 0` | 撤销最近一步 |
+| `redo` | `duration: 0` | 重做被撤销的步骤 |
+| `pause` | `duration: 0` | 暂停渲染动画 |
+| `resume` | `duration: 0` | 恢复渲染 |
+| `wait` | `duration: 500` | 暂停指定毫秒（控制动画节奏） |
+
+### 5.2 mode 参数（绘制阶段控制）
+
+| mode | 效果 |
+|------|------|
+| `"stroke"` | 只画轮廓线，不填充（勾线阶段） |
+| `"fill"` | 只填充颜色，不画轮廓（上色阶段） |
+| `"both"` | 默认，同时描边 + 填充（一次性完成） |
+
+设计意图：支持 **先轮廓 → 后上色** 的两阶段绘制体验，模仿真人作画过程。
+
+### 5.3 画笔系统
+
+| brush | 效果 | 关键参数 |
+|-------|------|----------|
+| `"pencil"` | 彩铅排线填充 — 平行斜线，间距均匀，线条略微抖动模拟手绘 | `fillAngle`（角度，默认45°）、`fillDensity`（密度1-10，默认5） |
+| `"paint"` | 颜料笔触填充 — 半透明色带，笔触间有重叠和偏移，边缘有手绘纹理 | `fillAngle`（笔触方向，默认45°） |
+
+实现原理：
+- **彩铅**：Canvas `clip()` 限定形状区域 → 循环画平行斜线（1px 细线 + 随机微小偏移）
+- **颜料笔**：Canvas `clip()` 限定形状区域 → 循环画稍宽半透明色带（`globalAlpha` 0.3-0.5），笔触间存在重叠和偏移
+
+### 5.4 完整示例："用彩铅画一朵红色简笔花"
 
 ```json
 {
   "instructions": [
-    { "action": "circle",   "cx": 200, "cy": 150, "r": 30, "fill": "#FF4444", "stroke": "#000", "duration": 300 },
-    { "action": "line",     "x1": 200, "y1": 180, "x2": 200, "y2": 280, "stroke": "#228B22", "duration": 200 },
-    { "action": "curve",    "points": [[200,280],[180,320],[150,300]], "stroke": "#228B22", "duration": 250 },
-    { "action": "clear",    "duration": 0 },
-    { "action": "undo",     "duration": 0 },
-    { "action": "setColor", "value": "#FF0000", "duration": 0 },
-    { "action": "setWidth", "value": 5, "duration": 0 }
+    { "action": "setBrush", "type": "pencil", "fillAngle": 45, "fillDensity": 6, "duration": 0 },
+    { "action": "setColor", "value": "#228B22", "duration": 0 },
+
+    { "action": "line", "x1": 200, "y1": 280, "x2": 200, "y2": 380, "stroke": "#228B22", "strokeWidth": 3, "mode": "stroke", "duration": 300 },
+
+    { "action": "setColor", "value": "#CC0000", "duration": 0 },
+    { "action": "circle", "cx": 200, "cy": 180, "r": 35, "stroke": "#CC0000", "strokeWidth": 2, "mode": "stroke", "duration": 500 },
+    { "action": "circle", "cx": 155, "cy": 210, "r": 30, "stroke": "#CC0000", "strokeWidth": 2, "mode": "stroke", "duration": 400 },
+    { "action": "circle", "cx": 245, "cy": 210, "r": 30, "stroke": "#CC0000", "strokeWidth": 2, "mode": "stroke", "duration": 400 },
+    { "action": "circle", "cx": 170, "cy": 150, "r": 28, "stroke": "#CC0000", "strokeWidth": 2, "mode": "stroke", "duration": 400 },
+    { "action": "circle", "cx": 230, "cy": 150, "r": 28, "stroke": "#CC0000", "strokeWidth": 2, "mode": "stroke", "duration": 400 },
+
+    { "action": "setColor", "value": "#CC9900", "duration": 0 },
+    { "action": "circle", "cx": 200, "cy": 130, "r": 20, "stroke": "#CC9900", "strokeWidth": 2, "mode": "stroke", "duration": 350 },
+
+    { "action": "wait", "duration": 300 },
+
+    { "action": "setColor", "value": "#FF4444", "duration": 0 },
+    { "action": "circle", "cx": 200, "cy": 180, "r": 35, "fill": "#FF4444", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 600 },
+    { "action": "circle", "cx": 155, "cy": 210, "r": 30, "fill": "#FF4444", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 500 },
+    { "action": "circle", "cx": 245, "cy": 210, "r": 30, "fill": "#FF4444", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 500 },
+    { "action": "circle", "cx": 170, "cy": 150, "r": 28, "fill": "#FF4444", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 500 },
+    { "action": "circle", "cx": 230, "cy": 150, "r": 28, "fill": "#FF4444", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 500 },
+
+    { "action": "setColor", "value": "#FFCC00", "duration": 0 },
+    { "action": "circle", "cx": 200, "cy": 130, "r": 20, "fill": "#FFCC00", "mode": "fill", "brush": "pencil", "fillAngle": 45, "duration": 400 }
   ]
 }
 ```
 
-每条指令都携带 `duration`（毫秒），前端 renderer.js 据此控制逐笔动画速度。
+---
+
+## 六、本地规则引擎
+
+### 6.1 核心原则
+
+- **本地只处理原子操作**：不可再分、不需要语义理解、参数明确的指令
+- **不确定就走 LLM**：宁可慢一点，不要误判
+- **字符串长度哨兵**：≤10 字 + 匹配关键词 → 本地；长指令即使含关键词也可能包含绘图意图 → LLM
+
+### 6.2 指令路由总览
+
+```
+用户语音文本
+    │
+    ▼
+┌─────────── 指令路由器 (backend/router.py) ──────────┐
+│                                                      │
+├─ 本地规则引擎（~50ms）                                │
+│  ├─ 画布操作: 清除 / 撤销 / 重做                      │
+│  ├─ 画笔控制: 切换画笔 / 换颜色 / 粗细                │
+│  └─ 系统指令: 暂停 / 继续                            │
+│                                                      │
+├─ LLM（2-5s）                                        │
+│  ├─ 所有绘图请求: "画一朵花" / "画棵树"               │
+│  ├─ 多对象场景: "画太阳和云朵和草地"                  │
+│  ├─ 相对位置: "在花的右边画蝴蝶"                      │
+│  └─ 修改请求: "把花变大一点" / "删掉那棵树"           │
+│                                                      │
+└─ 不确定 → 默认走 LLM（安全策略）                       │
+```
+
+### 6.3 本地指令清单
+
+**画布操作：**
+
+| 用户可以说 | 触发 |
+|-----------|------|
+| 清除 / 清空 / 清屏 / 全部清除 | `clear` |
+| 撤销 / 回退 / 上一步 / 返回 | `undo` |
+| 重做 / 恢复 | `redo` |
+
+**画笔控制：**
+
+| 用户可以说 | 触发 |
+|-----------|------|
+| 彩铅 / 用彩铅 / 换成彩铅 | `setBrush("pencil")` |
+| 颜料笔 / 用颜料 / 换成颜料笔 | `setBrush("paint")` |
+| 粗一点 / 细一点 | `setWidth(±1)` |
+| 线条粗细设为N | `setWidth(N)` |
+
+**颜色映射表（12色）：**
+
+| 中文 | hex | 中文 | hex |
+|------|-----|------|-----|
+| 红/红色 | `#FF4444` | 蓝/蓝色 | `#4488FF` |
+| 绿/绿色 | `#228B22` | 黄/黄色 | `#FFCC00` |
+| 橙/橙色 | `#FF8800` | 紫/紫色 | `#9944FF` |
+| 黑/黑色 | `#000000` | 白/白色 | `#FFFFFF` |
+| 灰/灰色 | `#888888` | 粉/粉色 | `#FF88AA` |
+| 棕/棕色 | `#8B4513` | 青/青色 | `#00CCCC` |
+
+**系统指令：**
+
+| 用户可以说 | 触发 |
+|-----------|------|
+| 暂停 / 停一下 | `pause` |
+| 继续 / 接着画 | `resume` |
+
+### 6.4 路由逻辑（Python）
+
+```python
+# backend/local_rules.py
+
+LOCAL_KEYWORDS = {
+    "清除": "clear", "清空": "clear", "清屏": "clear",
+    "撤销": "undo", "回退": "undo", "上一步": "undo",
+    "重做": "redo", "恢复": "redo",
+    "彩铅": ("setBrush", "pencil"),
+    "颜料笔": ("setBrush", "paint"), "颜料": ("setBrush", "paint"),
+    "暂停": "pause", "继续": "resume",
+}
+
+COLOR_MAP = {
+    "红": "#FF4444", "蓝": "#4488FF", "绿": "#228B22",
+    "黄": "#FFCC00", "橙": "#FF8800", "紫": "#9944FF",
+    "黑": "#000000", "白": "#FFFFFF", "灰": "#888888",
+    "粉": "#FF88AA", "棕": "#8B4513", "青": "#00CCCC",
+}
+
+def is_local_command(text: str) -> bool:
+    for color_key in COLOR_MAP:
+        if color_key in text and len(text) <= 10:
+            return True
+    for keyword in LOCAL_KEYWORDS:
+        if keyword in text and len(text) <= 10:
+            return True
+    return False
+```
 
 ---
 
-## 六、语音交互流程
+## 七、LLM Prompt 设计
+
+### 7.1 System Prompt（完整）
+
+```
+你是一个语音绘图助手。用户用自然语言描述想画的内容，你需要将其转换为 JSON 绘图指令序列。
+
+## 画布参数
+- 尺寸：800 × 600
+- 坐标原点在左上角
+- 建议绘图区域居中，留出边距
+
+## 输出格式
+严格输出以下 JSON，不要包含任何解释文字：
+{ "instructions": [...] }
+
+## 指令类型
+
+### 绘图指令（mode 控制绘制阶段）
+{ "action": "circle",   "cx": 200, "cy": 150, "r": 30, "stroke": "#CC0000", "fill": "#FF4444", "strokeWidth": 2, "mode": "stroke", "brush": "pencil", "duration": 500 }
+{ "action": "rect",     "x": 100, "y": 100, "w": 80, "h": 60, "stroke": "#000", "fill": "#FFF", "strokeWidth": 2, "mode": "both", "duration": 400 }
+{ "action": "line",     "x1": 0, "y1": 0, "x2": 100, "y2": 100, "stroke": "#000", "strokeWidth": 2, "mode": "stroke", "duration": 300 }
+{ "action": "curve",    "points": [[0,0],[50,30],[100,0]], "stroke": "#000", "strokeWidth": 2, "mode": "stroke", "duration": 400 }
+{ "action": "polygon",  "points": [[200,100],[250,50],[300,100],[250,150]], "stroke": "#000", "fill": "#FFF", "mode": "both", "duration": 500 }
+{ "action": "ellipse",  "cx": 200, "cy": 150, "rx": 40, "ry": 25, "stroke": "#000", "fill": "#FFF", "mode": "both", "duration": 400 }
+
+### 控制指令
+{ "action": "setColor",  "value": "#FF4444", "duration": 0 }
+{ "action": "setWidth",  "value": 3, "duration": 0 }
+{ "action": "setBrush",  "type": "pencil", "fillAngle": 45, "fillDensity": 5, "duration": 0 }
+{ "action": "wait",      "duration": 300 }
+
+## mode 说明
+- "stroke"：只画轮廓线（勾线阶段）
+- "fill"：只填充内部（上色阶段）
+- "both"：同时描边和填充（适用于一次性完成的简单形状）
+
+## brush 说明
+- "pencil"：彩铅效果，填充时使用排线（平行斜线），支持 fillAngle（角度）和 fillDensity（密度1-10）
+- "paint"：颜料笔效果，填充时展示笔触纹理
+
+## duration 说明
+- 简单线条：200-400ms · 中等形状：400-600ms · 复杂形状：600-1000ms · 控制指令：0ms
+
+## 绘制原则
+1. 如果用户指定了画笔类型，在第一条指令前插入 setBrush
+2. 如果用户指定了颜色，在第一条绘图指令前插入 setColor
+3. **两阶段绘制**：先全部用 mode:"stroke" 画出所有轮廓 → 然后用 mode:"fill" 逐一填充
+4. 形状的坐标要合理分布，避免重叠混乱
+5. 保持指令简洁，不要过度拆分——一片花瓣就是一个 circle 指令
+6. 花朵的花瓣围绕花蕊均匀分布
+7. 树由矩形树干 + 圆形/三角形树冠组成
+8. 太阳在画布上方，带光芒线
+
+现在请等待用户输入绘图指令。
+```
+
+### 7.2 后端调用逻辑
+
+```python
+# backend/llm.py
+
+import httpx
+import json
+
+SYSTEM_PROMPT = """..."""  # 上面的完整 prompt
+
+async def generate_instructions(user_text: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.qnaigc.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "deepseek-v3",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_text}
+                ],
+                "temperature": 0.3,
+                "max_tokens": 4096,
+                "response_format": {"type": "json_object"}
+            },
+            timeout=15.0
+        )
+        data = response.json()
+        return parse_llm_response(data)
+```
+
+### 7.3 容错设计（三道防线）
+
+```python
+# backend/instruction_parser.py
+
+def parse_llm_response(data: dict) -> dict:
+    # 防线1: JSON 解析
+    try:
+        content = data["choices"][0]["message"]["content"]
+        result = json.loads(content)
+    except (KeyError, json.JSONDecodeError):
+        return {"error": "LLM 返回格式异常，请重试"}
+
+    # 防线2: 结构校验
+    if "instructions" not in result:
+        return {"error": "缺少 instructions 字段"}
+    if not isinstance(result["instructions"], list):
+        return {"error": "instructions 应为数组"}
+
+    # 防线3: 逐条指令 action 校验
+    VALID_ACTIONS = {
+        "circle","rect","line","curve","polygon","ellipse","arc","text",
+        "setColor","setWidth","setBrush","clear","undo","redo","wait","pause","resume"
+    }
+    for i, inst in enumerate(result["instructions"]):
+        if inst.get("action") not in VALID_ACTIONS:
+            return {"error": f"第{i}条指令 action 无效: {inst.get('action')}"}
+
+    return result
+```
+
+---
+
+## 八、语音交互流程
 
 ```
 1. 用户按住录音按钮（或点击开始）
@@ -179,7 +472,7 @@ voice-canvas/
    （失败时前端降级 Web Speech API）
 4. 文本显示在状态栏 → POST /api/generate
 5. 后端指令路由器分发：
-   - 简单指令 → 本地规则引擎 50ms 返回
+   - 简单指令 → 本地规则引擎 ~50ms 返回
    - 复杂指令 → 七牛云 MaaS LLM 2-5s 返回
 6. 返回 JSON 指令序列
 7. 前端 renderer.js 逐条执行指令，每条按 duration 控速
@@ -188,34 +481,40 @@ voice-canvas/
 
 ---
 
-## 七、设计原则
+## 九、设计原则
 
-### 7.1 指令理解准确性 & 容错性
+### 9.1 指令理解准确性 & 容错性
 
 - LLM prompt 中明确 JSON 指令格式约束，要求只输出有效 JSON
-- 后端 `instruction_parser.py` 做二次校验，JSON 解析失败时返回错误提示而非崩溃
+- 后端 `instruction_parser.py` 做三道防线校验（JSON 解析 → 结构校验 → 逐条 action 校验），失败时返回错误提示而非崩溃
 - 本地规则引擎支持模糊匹配：「红色」「红的」「红颜色」→ 同一处理
 
-### 7.2 语音到绘图响应延迟
+### 9.2 语音到绘图响应延迟
 
 - 简单指令本地处理，毫秒级响应
-- 复杂指令流式返回？待评估 — V1 先走完整响应模式
+- 复杂指令走 LLM，2-5s 完整响应
 - 录音结束后立即显示识别文本，让用户知道系统在「听」
 
-### 7.3 复杂指令拆解
+### 9.3 复杂指令拆解
 
 - LLM 负责将「在画布中央画三个间距相等的红色圆形」拆解为多条基本指令
+- 两阶段绘制：所有轮廓先画完 → 然后逐一填充
 - 本地规则引擎只处理不可再分的原子操作
+
+### 9.4 成本控制策略
+
+- **本地优先**：简单指令走本地规则引擎，零 API 调用
+- **两阶段复用**：画布操作和画笔控制走本地，仅绘图请求走 LLM
+- **兜底降级**：七牛云 ASR 不可用时自动降级 Web Speech API
+- **指令缓存**：同一句指令短时间内重复 → 直接复用上次结果
 
 ---
 
-## 八、待细化事项
+## 十、待细化事项
 
-以下内容需要在后续讨论中确定：
-
-- [ ] JSON 指令集完整定义（所有 action 类型及其参数）
-- [ ] 本地规则引擎覆盖的指令清单
-- [ ] LLM prompt 详细设计
+- [x] JSON 指令集完整定义（所有 action 类型及其参数）
+- [x] 本地规则引擎覆盖的指令清单
+- [x] LLM prompt 详细设计
 - [ ] Canvas 渲染引擎逐笔动画方案
 - [ ] 前端 UI 布局设计
 - [ ] 错误处理 & 降级策略细节
@@ -223,7 +522,7 @@ voice-canvas/
 
 ---
 
-## 九、提交物清单
+## 十一、提交物清单
 
 根据题目要求，需提交：
 
