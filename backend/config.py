@@ -19,3 +19,11 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
 # Canvas
 CANVAS_WIDTH = 1200
 CANVAS_HEIGHT = 800
+GRID_COLS = 3
+GRID_ROWS = 2
+
+# 网格中文标签（与前端 ObjectStore 保持一致）
+GRID_LABELS: dict[str, str] = {
+    "0,0": "左上", "0,1": "中上", "0,2": "右上",
+    "1,0": "左下", "1,1": "中下", "1,2": "右下",
+}

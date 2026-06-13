@@ -51,7 +51,7 @@ function App() {
       const resp = await generateInstructions(text, canvasState, lastActionRef.current);
 
       // 更新 last_action
-      lastActionRef.current = { reply: resp.reply, instructions: resp.instructions };
+      lastActionRef.current = { user_text: text, reply: resp.reply, instructions: resp.instructions };
 
       // 执行指令
       setStatus('drawing');

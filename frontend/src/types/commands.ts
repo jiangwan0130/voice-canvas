@@ -168,6 +168,7 @@ export interface CanvasState {
 // ============ API 请求/响应 ============
 
 export interface LastAction {
+  user_text: string;        // 用户上轮说的话
   reply: string;
   instructions: DrawInstruction[];
 }

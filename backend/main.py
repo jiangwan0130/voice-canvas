@@ -13,7 +13,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from config import CANVAS_WIDTH, CANVAS_HEIGHT, ALLOWED_ORIGINS
+from config import CANVAS_WIDTH, CANVAS_HEIGHT, GRID_COLS, GRID_ROWS, GRID_LABELS, ALLOWED_ORIGINS
 from llm_client import call_llm
 from json_repair import repair_pipeline
 from command_parser import validate_instructions
@@ -86,6 +86,7 @@ class CanvasState(BaseModel):
     grid: GridState = GridState(cells=[])
 
 class LastAction(BaseModel):
+    user_text: str = ""
     reply: str = ""
     instructions: List[dict] = []
 
@@ -98,6 +99,85 @@ class GenerateResponse(BaseModel):
     reply: str
     instructions: List[dict]
     source: str  # "local" | "llm"
+
+
+# ============ Grid State 摘要化 ============
+
+def summarize_grid(grid_state: GridState) -> str:
+    """
+    将画布网格状态摘要化为 LLM 友好的 JSON。
+
+    设计意图：
+    1. 每个 cell 附上 xRange/yRange 坐标锚点，帮助 LLM 做空间推理
+    2. 对象只保留关键字段（id/label/type/位置/尺寸/颜色），
+       去掉 points 数组、渐变定义、画笔参数等噪音字段
+    3. 相比直接 model_dump()，减少约 60-70% token 消耗
+    """
+    cell_w = CANVAS_WIDTH / GRID_COLS
+    cell_h = CANVAS_HEIGHT / GRID_ROWS
+
+    cells_summary = []
+    for cell in grid_state.cells:
+        if not cell.id or ',' not in cell.id:
+            continue
+        r_str, c_str = cell.id.split(',', 1)
+        try:
+            r, c = int(r_str), int(c_str)
+        except ValueError:
+            continue
+
+        x_range = [int(c * cell_w), int((c + 1) * cell_w)]
+        y_range = [int(r * cell_h), int((r + 1) * cell_h)]
+
+        objects_summary = []
+        for obj in cell.objects:
+            entry: dict = {
+                "id": obj.id,
+                "label": obj.label,
+                "type": obj.type,
+            }
+            # 语义角色（仅非空时发送）
+            if obj.role:
+                entry["role"] = obj.role
+            if obj.groupId:
+                entry["groupId"] = obj.groupId
+            # 位置 — 取最相关的坐标
+            if obj.cx is not None:
+                entry["cx"] = obj.cx
+            if obj.cy is not None:
+                entry["cy"] = obj.cy
+            if obj.x is not None:
+                entry["x"] = obj.x
+            if obj.y is not None:
+                entry["y"] = obj.y
+            # 尺寸 — 帮助 LLM 判断"旁边"的距离
+            if obj.r is not None:
+                entry["r"] = obj.r
+            if obj.w is not None:
+                entry["w"] = obj.w
+            if obj.h is not None:
+                entry["h"] = obj.h
+            if obj.rx is not None:
+                entry["rx"] = obj.rx
+            if obj.ry is not None:
+                entry["ry"] = obj.ry
+            # 颜色 — 编辑指令需要
+            if obj.fill:
+                entry["fill"] = obj.fill
+            if obj.stroke:
+                entry["stroke"] = obj.stroke
+
+            objects_summary.append(entry)
+
+        cells_summary.append({
+            "id": cell.id,
+            "label": GRID_LABELS.get(cell.id, cell.id),
+            "xRange": x_range,
+            "yRange": y_range,
+            "objects": objects_summary,
+        })
+
+    return json.dumps({"cells": cells_summary}, ensure_ascii=False)
 
 
 # ============ Health ============
@@ -159,13 +239,17 @@ async def generate_instructions(request: Request, req: GenerateRequest):
         )
 
     # 2. LLM 调用 (月栖白)
-    grid_json = json.dumps(req.canvas_state.grid.model_dump(), ensure_ascii=False)
-    last_action_str = req.last_action.reply if req.last_action else "无"
+    grid_json = summarize_grid(req.canvas_state.grid)
+    if req.last_action and (req.last_action.user_text or req.last_action.reply):
+        last_action_str = f"用户说: \"{req.last_action.user_text}\"\n助手回复: \"{req.last_action.reply}\""
+    else:
+        last_action_str = "无"
 
     raw_output = None
     try:
         result = await call_llm(text, grid_json, last_action_str)
         raw_output = json.dumps(result, ensure_ascii=False)
+        logger.info(f"LLM success: '{text[:60]}' → {len(result.get('instructions', []))} instructions, reply='{result.get('reply', '')[:40]}'")
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
 
@@ -180,6 +264,7 @@ async def generate_instructions(request: Request, req: GenerateRequest):
     instructions_raw = parsed.get("instructions", []) if parsed else []
     reply = parsed.get("reply", "") if parsed else ""
     safe = validate_instructions(instructions_raw, existing_ids)
+    logger.info(f"instructions raw={len(instructions_raw)} safe={len(safe)}; dropped={len(instructions_raw) - len(safe)}")
 
     # 5. LLM 完全失败 → 友好提示
     if not safe:
