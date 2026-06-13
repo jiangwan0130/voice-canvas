@@ -29,12 +29,13 @@ interface CanvasProps {
   background?: string;
   onStatusChange?: (status: string) => void;
   onComplete?: () => void;
+  onReady?: () => void;
 }
 
 // ============ 组件 ============
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
-  { width = 800, height = 500, background = '#F5F5F5', onStatusChange, onComplete },
+  { width = 800, height = 500, background = '#F5F5F5', onStatusChange, onComplete, onReady },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,6 +54,8 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     if (onComplete) {
       renderer.onComplete = onComplete;
     }
+
+    onReady?.();
 
     return () => {
       renderer.abort();
