@@ -31,11 +31,15 @@ function App() {
   const lastActionRef = useRef<LastAction | null>(null);
   const [debugText, setDebugText] = useState('');
   const [objectCount, setObjectCount] = useState(0);
+  const isProcessingRef = useRef(false);
 
   // ---- 主流程 ----
 
   const processText = useCallback(async (text: string) => {
     if (!text.trim() || !canvasRef.current) return;
+    // 防止并发调用
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setSubtitle(text);
     setStatus('generating');
 
@@ -71,6 +75,8 @@ function App() {
       setStatus('error');
       setSubtitle('出错了，请重试');
       return;
+    } finally {
+      isProcessingRef.current = false;
     }
 
     setStatus('idle');
@@ -106,7 +112,7 @@ function App() {
   }, [processText]);
 
   const voice = useVoice(handleVoiceResult, (s: VoiceStatus) => {
-    if (s === 'error') setStatus('error');
+    setStatus(s);
   });
 
   // ---- Canvas 初始化 ----
@@ -134,22 +140,27 @@ function App() {
   };
 
   const handleUndo = () => {
+    canvasRef.current?.abort();
     if (executorRef.current?.undo()) {
       setObjectCount(storeRef.current.count);
       setSubtitle('已撤销');
+      setStatus('idle');
     }
   };
 
   const handleRedo = () => {
+    canvasRef.current?.abort();
     if (executorRef.current?.redo()) {
       setObjectCount(storeRef.current.count);
       setSubtitle('已重做');
+      setStatus('idle');
     }
   };
 
   const handleClear = () => {
     storeRef.current.clear();
     historyMgrRef.current.clear();
+    canvasRef.current?.clear();
     lastActionRef.current = null;
     setHistory([]);
     setObjectCount(0);

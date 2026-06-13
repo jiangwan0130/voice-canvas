@@ -25,9 +25,6 @@ export class CommandExecutor {
 
   /** 执行后端返回的 instructions，返回 reply 文本 */
   async execute(instructions: DrawInstruction[], userText: string): Promise<void> {
-    // 先保存快照
-    this.history.save(this.store.snapshot(), userText);
-
     for (const inst of instructions) {
       await this.dispatch(inst, userText);
     }
@@ -36,8 +33,9 @@ export class CommandExecutor {
   private async dispatch(inst: DrawInstruction, userText: string): Promise<void> {
     const { action } = inst;
 
-    // 对象管理 — 指令执行前自动注册到 ObjectStore
+    // 对象管理 — 每次 store 变更前保存快照，保证逐条可撤销
     if ((SHAPE_ACTIONS as readonly string[]).includes(action)) {
+      this.history.save(this.store.snapshot(), userText);
       this.store.add(instructionToDrawParams(inst) as Omit<DrawObject, 'id' | 'cellId'>);
     }
 
@@ -51,11 +49,13 @@ export class CommandExecutor {
       }
 
       if (action === 'update_object') {
+        this.history.save(this.store.snapshot(), userText);
         const params = inst.params as Record<string, unknown> ?? {};
         this.store.update(inst.target as string, params as Partial<DrawObject>);
         this.renderer.drawObjects(this.store.getAll());
         return;
       } else if (action === 'move_object') {
+        this.history.save(this.store.snapshot(), userText);
         const obj = this.store.get(inst.target as string);
         if (!obj) return;
         const dx = (inst.dx as number) ?? 0;
@@ -82,6 +82,7 @@ export class CommandExecutor {
         this.renderer.drawObjects(this.store.getAll());
         return;
       } else if (action === 'delete_object') {
+        this.history.save(this.store.snapshot(), userText);
         this.store.delete(inst.target as string);
         this.renderer.drawObjects(this.store.getAll());
         return;

@@ -47,7 +47,7 @@ def validate_and_fix(parsed: dict) -> dict:
         parsed['reply'] = '好的'
     if 'instructions' not in parsed:
         parsed['instructions'] = [
-            {'action': 'speak', 'params': {'text': parsed.get('reply', '好的')}}
+            {'action': 'speak', 'text': parsed.get('reply', '好的')}
         ]
     if not isinstance(parsed['instructions'], list):
         parsed['instructions'] = []

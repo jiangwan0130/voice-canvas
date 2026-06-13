@@ -478,10 +478,6 @@ export class CanvasRenderer {
   // ============ 外部对象重绘 ============
 
   /**
-   * PR #11: 根据 ObjectStore 的对象列表瞬间重绘全部（无动画）
-   * 用于对象编辑后（update/move/delete）刷新画布
-   */
-  /**
    * 根据 ObjectStore 的对象列表瞬间重绘全部（无动画）。
    * 用于对象编辑后（update/move/delete/undo/redo）刷新画布。
    *
@@ -492,7 +488,8 @@ export class CanvasRenderer {
     this.ctx.fillStyle = this.background;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     for (const obj of objects) {
-      this.drawInstant(obj as unknown as DrawInstruction);
+      // DrawObject 使用 type 字段，drawInstant 使用 action 字段做分发
+      this.drawInstant({ ...obj, action: obj.type } as unknown as DrawInstruction);
     }
   }
 

@@ -6,6 +6,7 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { CanvasRenderer, type RendererConfig } from '../engine/renderer';
 import type { DrawInstruction } from '../types/commands';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config';
 
 // ============ 向外暴露的 ref 接口 ============
 
@@ -33,7 +34,7 @@ interface CanvasProps {
 // ============ 组件 ============
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
-  { width = 800, height = 500, background = '#F5F5F5', onStatusChange, onComplete, onReady },
+  { width = CANVAS_WIDTH, height = CANVAS_HEIGHT, background = '#F5F5F5', onStatusChange, onComplete, onReady },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);

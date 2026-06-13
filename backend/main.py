@@ -38,7 +38,7 @@ MAX_AUDIO_SIZE = 10 * 1024 * 1024  # 10 MB
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS.split(","),
+    allow_origins=[o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )

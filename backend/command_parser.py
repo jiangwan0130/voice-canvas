@@ -89,7 +89,8 @@ def validate_instructions(instructions: list[dict], existing_object_ids: set) ->
                 if k in ('w','h','r','rx','ry'):
                     params[k] = max(1, min(params[k], max(CANVAS_WIDTH, CANVAS_HEIGHT)))
                 elif k in ('dx','dy'):
-                    params[k] = max(-CANVAS_WIDTH, min(params[k], CANVAS_WIDTH))
+                    bound = CANVAS_HEIGHT if k == 'dy' else CANVAS_WIDTH
+                    params[k] = max(-bound, min(params[k], bound))
                 else:
                     bound = CANVAS_HEIGHT if k.startswith('y') else CANVAS_WIDTH
                     params[k] = max(0, min(params[k], bound))
