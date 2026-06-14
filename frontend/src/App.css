@@ -87,10 +87,10 @@ body {
 }
 
 .app-title-en {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Zhi Mang Xing', 'STXingkai', '华文行楷', 'KaiTi', cursive;
   font-size: 12px;
-  font-weight: 500;
-  color: #aaa;
+  font-weight: 400;
+  color: #999;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
