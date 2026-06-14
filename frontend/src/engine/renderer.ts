@@ -50,8 +50,8 @@ export class CanvasRenderer {
 
   constructor(config: RendererConfig) {
     this.canvas = config.canvas;
-    this.canvas.width = config.width ?? 800;
-    this.canvas.height = config.height ?? 500;
+    this.canvas.width = config.width ?? 900;
+    this.canvas.height = config.height ?? 550;
     this.background = config.background ?? '#F5F5F5';
     this.ctx = this.canvas.getContext('2d')!;
     this.ctx.fillStyle = this.background;
@@ -143,7 +143,11 @@ export class CanvasRenderer {
         this.currentColor = (inst.value as string) ?? '#000000';
         break;
       case 'setWidth':
-        this.currentWidth = (inst.value as number) ?? 2;
+        if (inst.delta !== undefined) {
+          this.currentWidth = Math.max(1, this.currentWidth + (inst.delta as number));
+        } else {
+          this.currentWidth = (inst.value as number) ?? 2;
+        }
         break;
       case 'setBrush':
         this.currentBrush = (inst.type as BrushType) ?? 'pencil';
@@ -161,6 +165,13 @@ export class CanvasRenderer {
         break;
       case 'wait':
         await this.wait((inst.duration as number) ?? 300);
+        break;
+
+      case 'pause':
+        this.pause();
+        break;
+      case 'resume':
+        this.resume();
         break;
 
       // 对象编辑指令（PR #8 实现，此处理解但暂不执行）

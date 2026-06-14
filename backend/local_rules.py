@@ -106,18 +106,17 @@ def match_rules(text: str) -> Optional[dict]:
             matched_keywords.add(keyword)
             break
 
-    # ---- 颜色切换（长键优先:"红色">"红"） ----
+    # ---- 颜色切换（仅当文本不含绘画名词, 如"红色的花"→LLM, "换成红色"→本地） ----
     for color_key in sorted(COLOR_MAP.keys(), key=len, reverse=True):
         if color_key in text and len(text) <= 14 and color_key not in matched_keywords:
+            # 检查去除颜色词后是否还有实质内容（名词=绘画意图 → 走LLM）
+            remainder = text.replace(color_key, "").strip()
+            if _has_drawing_nouns(remainder):
+                break  # 含有绘画名词, 整条走LLM
             color_hex = COLOR_MAP[color_key]
             instructions.append({"action": "setColor", "value": color_hex, "duration": 0})
             replies.append(f"颜色切换为{color_key}")
             matched_keywords.add(color_key)
-            # 也标记单字键为已匹配（避免"红色"后再匹配"红"）
-            if len(color_key) >= 2:
-                for short_k in COLOR_MAP:
-                    if len(short_k) == 1 and short_k in color_key:
-                        matched_keywords.add(short_k)
             break
 
     # ---- 粗细调整 ----
@@ -128,20 +127,28 @@ def match_rules(text: str) -> Optional[dict]:
             break
 
     # ---- 线条粗细明确值 ----
-    if not instructions:  # 只在无其他匹配时才尝试
-        for pattern, _ in WIDTH_SPECIFICS:
-            m = re.search(pattern, text)
-            if m and is_short:
-                value = int(m.group(1))
-                instructions.append({"action": "setWidth", "value": value, "duration": 0})
-                replies.append(f"线条粗细设为 {value}")
-                break
+    for pattern, _ in WIDTH_SPECIFICS:
+        m = re.search(pattern, text)
+        if m and is_short:
+            value = int(m.group(1))
+            instructions.append({"action": "setWidth", "value": value, "duration": 0})
+            replies.append(f"线条粗细设为 {value}")
+            break
 
     if instructions:
         return {"reply": "，".join(replies) if replies else "好的", "instructions": instructions}
 
     # ---- 未匹配 → 走 LLM ----
     return None
+
+
+DRAWING_NOUNS = {"花", "树", "草", "太阳", "云", "房子", "屋", "蝴蝶", "鸟", "鱼", "猫", "狗",
+                  "山", "河", "路", "桥", "星", "月", "心", "车", "船", "人", "雪", "雨"}
+
+
+def _has_drawing_nouns(text: str) -> bool:
+    """检查文本是否含有绘画目标名词，有则整条走LLM"""
+    return any(noun in text for noun in DRAWING_NOUNS)
 
 
 def _is_short(text: str, max_len: int = 10) -> bool:

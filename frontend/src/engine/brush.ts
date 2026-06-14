@@ -3,7 +3,7 @@
 // PR #7: Canvas 渲染引擎
 // ============================================================
 
-import type { BrushType, FillGradient, DrawMode } from '../types/commands';
+import type { BrushType, FillGradient } from '../types/commands';
 
 // ============ 画笔填充策略接口 ============
 
@@ -126,9 +126,9 @@ class PaintBrush implements BrushStrategy {
     const strokeLength = 12 + density * 4; // 笔触长度
 
     for (let i = 0; i < brushCount; i++) {
-      // 笔触随机分布在裁剪区域内
-      const baseX = (Math.random() - 0.3) * ctx.canvas.width;
-      const baseY = (Math.random() - 0.3) * ctx.canvas.height;
+      // 笔触随机分布在裁剪区域内（钳位到非负坐标，避免渐变取样越界）
+      const baseX = Math.max(0, (Math.random() - 0.3) * ctx.canvas.width);
+      const baseY = Math.max(0, (Math.random() - 0.3) * ctx.canvas.height);
 
       // 半透明色带，带方向性
       ctx.globalAlpha = 0.25 + Math.random() * 0.2;
