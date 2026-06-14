@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="语绘 Voice Canvas API")
+
+@app.exception_handler(422)
+async def log_422(request: Request, exc: Exception):
+    body = await request.body()
+    logger.error(f"422 Validation Error for {request.url.path}: {exc}")
+    logger.error(f"Request body (first 500 chars): {body.decode('utf-8', errors='replace')[:500]}")
+    from fastapi.exception_handlers import request_validation_exception_handler
+    return await request_validation_exception_handler(request, exc)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
