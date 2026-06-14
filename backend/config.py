@@ -7,10 +7,10 @@ load_dotenv()
 # 阿里云百炼 ASR（Paraformer）
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
-# DeepSeek LLM 官方直连
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
+# Qwen 通义千问（DashScope OpenAI 兼容模式）
+LLM_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+LLM_API_BASE = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen-plus")
 
 # CORS
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
