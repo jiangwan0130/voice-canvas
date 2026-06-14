@@ -231,6 +231,11 @@ export class CanvasRenderer {
       return;
     }
 
+    // mode='both': 先填充（底层），再描边动画（上层）
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipCircle(cx, cy, r));
+    }
+
     const stroke = (inst.stroke as string) ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
 
@@ -254,6 +259,11 @@ export class CanvasRenderer {
     if (mode === 'fill') {
       this.drawFill(inst, () => this.clipRect(x, y, w, h));
       return;
+    }
+
+    // mode='both': 先填充（底层），再描边动画（上层）
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipRect(x, y, w, h));
     }
 
     const stroke = inst.stroke as string ?? this.currentColor;
@@ -289,7 +299,14 @@ export class CanvasRenderer {
     const y1 = (inst.y1 as number) ?? 0;
     const x2 = (inst.x2 as number) ?? 100;
     const y2 = (inst.y2 as number) ?? 100;
+    const mode = (inst.mode as DrawMode) ?? 'stroke';
     const duration = (inst.duration as number) ?? 300;
+
+    // 线段无面积，纯填充无意义，跳过
+    if (mode === 'fill') {
+      console.warn('[Renderer] drawLine 不支持 mode:"fill"，已忽略');
+      return;
+    }
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
@@ -309,7 +326,14 @@ export class CanvasRenderer {
   private async drawCurve(inst: DrawInstruction): Promise<void> {
     const points = inst.points as Array<[number, number]> ?? [];
     if (points.length < 2) return;
+    const mode = (inst.mode as DrawMode) ?? 'stroke';
     const duration = (inst.duration as number) ?? 400;
+
+    // 曲线（折线）无封闭面积定义，纯填充无意义，跳过
+    if (mode === 'fill') {
+      console.warn('[Renderer] drawCurve 不支持 mode:"fill"，已忽略');
+      return;
+    }
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
@@ -345,30 +369,37 @@ export class CanvasRenderer {
       return;
     }
 
+    // mode='both': 先填充（底层），再描边动画（上层）
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipPolygon(points));
+    }
+
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
 
     await this.animateStroke((progress) => {
       const totalSegments = points.length;
-      const idx = Math.floor(totalSegments * progress);
+      // 使用连续浮点进度，确保闭合边随动画渐进出现（而非仅在 1.0 跳变）
+      const rawIdx = totalSegments * progress;
+      const idx = Math.min(totalSegments, Math.ceil(rawIdx));
       this.ctx.beginPath();
       this.ctx.moveTo(points[0][0], points[0][1]);
-      for (let i = 1; i <= idx; i++) {
-        if (i < totalSegments) {
-          this.ctx.lineTo(points[i][0], points[i][1]);
-        } else {
-          this.ctx.closePath();
-        }
+      for (let i = 1; i < idx; i++) {
+        this.ctx.lineTo(points[i][0], points[i][1]);
+      }
+      // 当前边的部分插值
+      if (idx < totalSegments) {
+        const frac = rawIdx - (idx - 1);
+        const px = points[idx - 1][0] + (points[idx][0] - points[idx - 1][0]) * frac;
+        const py = points[idx - 1][1] + (points[idx][1] - points[idx - 1][1]) * frac;
+        this.ctx.lineTo(px, py);
+      } else {
+        this.ctx.closePath();
       }
       this.ctx.strokeStyle = stroke;
       this.ctx.lineWidth = sw;
       this.ctx.stroke();
     }, duration);
-
-    // mode='both': 描边动画完成后追加填充
-    if (mode === 'both') {
-      this.drawFill(inst, () => this.clipPolygon(points));
-    }
   }
 
   private async drawEllipse(inst: DrawInstruction): Promise<void> {
@@ -382,6 +413,11 @@ export class CanvasRenderer {
     if (mode === 'fill') {
       this.drawFill(inst, () => this.clipEllipse(cx, cy, rx, ry));
       return;
+    }
+
+    // mode='both': 先填充（底层），再描边动画（上层）
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipEllipse(cx, cy, rx, ry));
     }
 
     const stroke = inst.stroke as string ?? this.currentColor;
@@ -402,8 +438,18 @@ export class CanvasRenderer {
     const r = (inst.r as number) ?? 30;
     const startAngle = (inst.startAngle as number) ?? 0;
     const endAngle = (inst.endAngle as number) ?? Math.PI;
-    const mode = (inst.mode as DrawMode) ?? 'stroke';
+    const mode = (inst.mode as DrawMode) ?? 'both';
     const duration = (inst.duration as number) ?? 400;
+
+    if (mode === 'fill') {
+      this.drawFill(inst, () => this.clipArc(cx, cy, r, startAngle, endAngle));
+      return;
+    }
+
+    // mode='both': 先填充（底层），再描边动画（上层）
+    if (mode === 'both') {
+      this.drawFill(inst, () => this.clipArc(cx, cy, r, startAngle, endAngle));
+    }
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
@@ -412,16 +458,9 @@ export class CanvasRenderer {
       const currentAngle = startAngle + (endAngle - startAngle) * progress;
       this.ctx.beginPath();
       this.ctx.arc(cx, cy, r, startAngle, currentAngle);
-      if (mode === 'fill' || mode === 'both') {
-        this.ctx.closePath();
-        this.ctx.fillStyle = inst.fill as string ?? this.currentColor;
-        this.ctx.fill();
-      }
-      if (mode !== 'fill') {
-        this.ctx.strokeStyle = stroke;
-        this.ctx.lineWidth = sw;
-        this.ctx.stroke();
-      }
+      this.ctx.strokeStyle = stroke;
+      this.ctx.lineWidth = sw;
+      this.ctx.stroke();
     }, duration);
   }
 
@@ -452,12 +491,17 @@ export class CanvasRenderer {
     const fillAngle = (inst.fillAngle as number) ?? this.currentFillAngle;
     const fillDensity = (inst.fillDensity as number) ?? this.currentFillDensity;
 
-    const brush = getBrush(brushType);
-    brush.fill(this.ctx, clipShape, fill, fillGradient, {
-      fillAngle,
-      fillDensity,
-      duration: (inst.duration as number) ?? 500,
-    });
+    this.ctx.save();
+    try {
+      const brush = getBrush(brushType);
+      brush.fill(this.ctx, clipShape, fill, fillGradient, {
+        fillAngle,
+        fillDensity,
+        duration: (inst.duration as number) ?? 500,
+      });
+    } finally {
+      this.ctx.restore();
+    }
   }
 
   // ============ 裁剪形状 ============
@@ -489,6 +533,12 @@ export class CanvasRenderer {
     this.ctx.closePath();
   }
 
+  private clipArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number): void {
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, r, startAngle, endAngle);
+    this.ctx.closePath();
+  }
+
   // ============ 外部对象重绘 ============
 
   /**
@@ -508,23 +558,34 @@ export class CanvasRenderer {
   }
 
   /**
-   * 瞬间绘制单条指令（不带动画）
+   * 瞬间绘制单条指令（不带动画）。
+   * 使用画笔系统填充以保持与动画路径一致的纹理效果。
    */
   private drawInstant(inst: DrawInstruction): void {
     const color = inst.color as string;
     const fill = inst.fill as string;
     const stroke = inst.stroke as string;
     const sw = (inst.strokeWidth as number) ?? 2;
+    const mode = (inst.mode as DrawMode) ?? 'both';
+    // stroke:"none" 或 strokeWidth:0 表示不描边
+    const shouldStroke = !!(stroke && stroke !== 'none' && sw > 0);
+    const shouldFill = !!(fill && (mode === 'fill' || mode === 'both'));
 
     switch (inst.action) {
       case 'circle': {
         const cx = (inst.cx as number) ?? 0;
         const cy = (inst.cy as number) ?? 0;
         const r = (inst.r as number) ?? 10;
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldFill) {
+          this.drawFill(inst, () => this.clipCircle(cx, cy, r));
+        }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'line': {
@@ -532,10 +593,14 @@ export class CanvasRenderer {
         const y1 = (inst.y1 as number) ?? 0;
         const x2 = (inst.x2 as number) ?? 100;
         const y2 = (inst.y2 as number) ?? 100;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(x1, y1);
+          this.ctx.lineTo(x2, y2);
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'rect': {
@@ -543,8 +608,14 @@ export class CanvasRenderer {
         const y = (inst.y as number) ?? 0;
         const w = (inst.w as number) ?? 50;
         const h = (inst.h as number) ?? 50;
-        if (fill) { this.ctx.fillStyle = fill; this.ctx.fillRect(x, y, w, h); }
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.strokeRect(x, y, w, h); }
+        if (shouldFill) {
+          this.drawFill(inst, () => this.clipRect(x, y, w, h));
+        }
+        if (shouldStroke) {
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.strokeRect(x, y, w, h);
+        }
         break;
       }
       case 'ellipse': {
@@ -552,30 +623,46 @@ export class CanvasRenderer {
         const cy = (inst.cy as number) ?? 0;
         const rx = (inst.rx as number) ?? 30;
         const ry = (inst.ry as number) ?? 20;
-        this.ctx.beginPath();
-        this.ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldFill) {
+          this.drawFill(inst, () => this.clipEllipse(cx, cy, rx, ry));
+        }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'polygon': {
         const pts = inst.points as Array<[number, number]> ?? [];
         if (pts.length < 3) break;
-        this.ctx.beginPath();
-        this.ctx.moveTo(pts[0][0], pts[0][1]);
-        for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
-        this.ctx.closePath();
-        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldFill) {
+          this.drawFill(inst, () => this.clipPolygon(pts));
+        }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
+          this.ctx.closePath();
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'curve': {
         const pts = inst.points as Array<[number, number]> ?? [];
         if (pts.length < 2) break;
-        this.ctx.beginPath();
-        this.ctx.moveTo(pts[0][0], pts[0][1]);
-        for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i < pts.length; i++) this.ctx.lineTo(pts[i][0], pts[i][1]);
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'arc': {
@@ -584,10 +671,16 @@ export class CanvasRenderer {
         const ar = (inst.r as number) ?? 30;
         const aStart = (inst.startAngle as number) ?? 0;
         const aEnd = (inst.endAngle as number) ?? Math.PI;
-        this.ctx.beginPath();
-        this.ctx.arc(acx, acy, ar, aStart, aEnd);
-        if (fill) { this.ctx.fillStyle = fill; this.ctx.fill(); }
-        if (stroke) { this.ctx.strokeStyle = stroke; this.ctx.lineWidth = sw; this.ctx.stroke(); }
+        if (shouldFill) {
+          this.drawFill(inst, () => this.clipArc(acx, acy, ar, aStart, aEnd));
+        }
+        if (shouldStroke) {
+          this.ctx.beginPath();
+          this.ctx.arc(acx, acy, ar, aStart, aEnd);
+          this.ctx.strokeStyle = stroke;
+          this.ctx.lineWidth = sw;
+          this.ctx.stroke();
+        }
         break;
       }
       case 'text': {
