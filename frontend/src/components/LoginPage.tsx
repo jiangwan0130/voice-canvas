@@ -78,13 +78,6 @@ export function LoginPage({ onEnter }: LoginPageProps) {
                 maxLength={16}
                 autoFocus
               />
-              <span className="login-input-line">
-                <span className="login-input-line-dot" />
-                <span className="login-input-line-dot" />
-                <span className="login-input-line-dot" />
-                <span className="login-input-line-dot" />
-                <span className="login-input-line-dot" />
-              </span>
             </div>
             <span className="login-hint">⌨ 按下 Enter 开始创作</span>
           </div>
