@@ -175,6 +175,16 @@ function App() {
     setSubtitle('画布已清空');
   };
 
+  const handleExport = () => {
+    const dataUrl = canvasRef.current?.getSnapshot();
+    if (!dataUrl) return;
+    const link = document.createElement('a');
+    link.download = `语绘_${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = dataUrl;
+    link.click();
+    setSubtitle('图片已导出');
+  };
+
   const handleDebugSend = () => {
     if (debugText.trim()) { processText(debugText.trim()); setDebugText(''); }
   };
@@ -205,6 +215,7 @@ function App() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         onClear={handleClear}
+        onExport={handleExport}
       />
 
       <CommandHistory items={history} maxShow={5} />

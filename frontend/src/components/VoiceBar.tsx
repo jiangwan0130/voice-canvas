@@ -13,6 +13,7 @@ interface VoiceBarProps {
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
+  onExport: () => void;
 }
 
 const STATUS_CONFIG: Record<AppStatus, { emoji: string; label: string }> = {
@@ -32,6 +33,7 @@ export function VoiceBar({
   onUndo,
   onRedo,
   onClear,
+  onExport,
 }: VoiceBarProps) {
   const isProcessing = status === 'transcribing' || status === 'generating' || status === 'drawing';
   const isRecording = status === 'recording';
@@ -80,6 +82,9 @@ export function VoiceBar({
           </button>
           <button onClick={onClear} className="vb-tool vb-tool--danger" title="清空画布">
             🗑
+          </button>
+          <button onClick={onExport} className="vb-tool" title="导出图片" style={{ marginLeft: '8px' }}>
+            📥
           </button>
         </div>
       </div>
