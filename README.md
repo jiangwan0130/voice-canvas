@@ -7,9 +7,7 @@
 
 ## 🎥 演示
 
-> 📺 [在线观看 Demo 视频](demo-video.mp4)
-
-[演示稿](docs/demo_script.md)
+<video src="demo-video.mp4" controls width="100%" style="max-width:800px"></video>
 
 ---
 
