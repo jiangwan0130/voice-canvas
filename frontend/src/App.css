@@ -526,61 +526,28 @@ body {
 }
 
 .login-title-cn {
-  font-size: 48px;
-  font-weight: 900;
+  font-family: 'Zhi Mang Xing', 'STXingkai', '华文行楷', 'KaiTi', cursive;
+  font-size: 56px;
+  font-weight: 400;
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .login-char {
   display: inline-block;
-  position: relative;
-  color: #3b5fd8;
-  /* 画笔轮廓: 粗描边模拟笔触边缘 */
-  -webkit-text-stroke: 2px rgba(59, 95, 216, 0.3);
-  /* 流动渐变叠加 */
-  background: linear-gradient(
-    180deg,
-    #4a78e8 0%,
-    #3b5fd8 40%,
-    #5b3fd8 70%,
-    #3b5fd8 100%
-  );
-  background-size: 100% 200%;
+  background: linear-gradient(180deg, #4a6fd8 0%, #3b4fc8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: brush-bleed 3s ease-in-out infinite alternate;
-  /* 笔触毛边 — 多层偏移阴影模拟颜料晕染 */
-  filter:
-    drop-shadow(1px 1px 0 rgba(59, 95, 216, 0.25))
-    drop-shadow(-1px -1px 0 rgba(80, 60, 210, 0.2))
-    drop-shadow(2px 0px 0 rgba(59, 95, 216, 0.15))
-    drop-shadow(-2px 0px 0 rgba(80, 60, 210, 0.15))
-    drop-shadow(0px 2px 0 rgba(59, 95, 216, 0.12))
-    drop-shadow(0px -1px 0 rgba(80, 60, 210, 0.12))
-    drop-shadow(3px 1px 0 rgba(59, 95, 216, 0.08))
-    drop-shadow(-3px -1px 0 rgba(80, 60, 210, 0.08));
-  /* 略微倾斜模拟手写 */
-  transform: rotate(-1deg);
-}
-
-.login-char:last-child {
-  transform: rotate(0.5deg);
-  margin-top: -2px;
-}
-
-@keyframes brush-bleed {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 0% 100%; }
 }
 
 .login-title-en {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8aabc8;
-  letter-spacing: 0.25em;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ab0c8;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
+  margin-top: -6px;
 }
 
 .login-desc {
