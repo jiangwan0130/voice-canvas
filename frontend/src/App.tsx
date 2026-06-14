@@ -194,19 +194,6 @@ function App() {
         <span className="app-user">{username}</span>
       </header>
 
-      <main className="app-main">
-        <ErrorBoundary>
-          <Canvas
-            ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            background="#FFFFFF"
-            onComplete={() => setStatus('idle')}
-            onReady={handleCanvasReady}
-          />
-        </ErrorBoundary>
-      </main>
-
       <VoiceBar
         status={status}
         subtitle={subtitle}
@@ -231,6 +218,19 @@ function App() {
         />
         <button onClick={handleDebugSend} className="debug-send">发送</button>
       </div>
+
+      <main className="app-main">
+        <ErrorBoundary>
+          <Canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            background="#FFFFFF"
+            onComplete={() => setStatus('idle')}
+            onReady={handleCanvasReady}
+          />
+        </ErrorBoundary>
+      </main>
     </div>
   );
 }
