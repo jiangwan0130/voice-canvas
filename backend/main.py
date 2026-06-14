@@ -236,88 +236,91 @@ async def generate_instructions(request: Request, req: GenerateRequest):
     if not text:
         return GenerateResponse(reply="请说点什么吧", instructions=[], source="local")
 
-    # 0. 收集已有对象 ID（用于 target 存在性校验）
-    existing_ids: set[str] = set()
-    canvas_grid = req.canvas_state.get('grid', {})
-    for cell in canvas_grid.get('cells', []):
-        for obj in cell.get('objects', []):
-            oid = obj.get('id', '')
-            if oid:
-                existing_ids.add(oid)
-
-    # 1. 本地规则引擎 (芝士番薯)
-    local_result = route(text)
-    if local_result["source"] == "local":
-        instructions = local_result.get("instructions", [])
-        safe = validate_instructions(instructions, existing_ids)
-        return GenerateResponse(
-            reply=local_result.get("reply", "好的"),
-            instructions=safe,
-            source="local",
-        )
-
-    # 2. LLM 调用 (月栖白)
-    # 将 dict 转为 Pydantic 对象供 summarize_grid 使用
-    from pydantic import ValidationError
     try:
-        canvas_grid_obj = GridState(**canvas_grid)
-    except ValidationError:
-        canvas_grid_obj = GridState(cells=[])
-    grid_json = summarize_grid(canvas_grid_obj)
-    if req.conversation_history:
-        history_parts = []
-        for i, turn in enumerate(req.conversation_history, 1):
-            undone_mark = " (已撤销)" if turn.get('undone', False) else ""
-            parts = [
-                f"### 第{i}轮{undone_mark}",
-                f"用户说: \"{turn.get('user_text', '')}\"",
-                f"助手回复: \"{turn.get('reply', '')}\"",
-            ]
-            if turn.get('instructions'):
-                # 摘要本轮指令（只传 action+关键参数, 减少token）
-                brief = []
-                for inst in turn.instructions[:10]:  # 最多10条
-                    a = inst.get("action", "")
-                    if a in ("setColor","setWidth","setBrush","clear","undo","wait"):
-                        continue  # 跳过控制指令
-                    label = inst.get("label", "") or ""
-                    brief.append(f"{a}" + (f"({label})" if label else ""))
-                if brief:
-                    parts.append(f"执行了: {', '.join(brief)}")
-            history_parts.append("\n".join(parts))
-        conversation_history_str = "\n\n".join(history_parts)
-    else:
-        conversation_history_str = "无"
+        existing_ids: set[str] = set()
+        canvas_grid = req.canvas_state.get('grid', {})
+        for cell in canvas_grid.get('cells', []):
+            for obj in cell.get('objects', []):
+                oid = obj.get('id', '')
+                if oid:
+                    existing_ids.add(oid)
 
-    raw_output = None
-    try:
-        raw_output = await call_llm(text, grid_json, conversation_history_str)
-        logger.info(f"LLM raw output: {len(raw_output)} chars for '{text[:60]}'")
-    except Exception as e:
-        logger.error(f"LLM call failed: {e}")
+        # 1. 本地规则引擎 (芝士番薯)
+        local_result = route(text)
+        if local_result["source"] == "local":
+            instructions = local_result.get("instructions", [])
+            safe = validate_instructions(instructions, existing_ids)
+            return GenerateResponse(
+                reply=local_result.get("reply", "好的"),
+                instructions=safe,
+                source="local",
+            )
 
-    # 3. 修复管道 (月栖白) — 统一处理 JSON 解析/修复
-    parsed = None
-    if raw_output:
-        parsed, repair_err = repair_pipeline(raw_output)
-        if repair_err:
-            logger.warning(f"JSON repair: {repair_err}")
+        # 2. LLM 调用 (月栖白)
+        from pydantic import ValidationError
+        try:
+            canvas_grid_obj = GridState(**canvas_grid)
+        except ValidationError:
+            canvas_grid_obj = GridState(cells=[])
+        grid_json = summarize_grid(canvas_grid_obj)
+        if req.conversation_history:
+            history_parts = []
+            for i, turn in enumerate(req.conversation_history, 1):
+                undone_mark = " (已撤销)" if turn.get('undone', False) else ""
+                parts = [
+                    f"### 第{i}轮{undone_mark}",
+                    f"用户说: \"{turn.get('user_text', '')}\"",
+                    f"助手回复: \"{turn.get('reply', '')}\"",
+                ]
+                if turn.get('instructions'):
+                    brief = []
+                    for inst in turn.get('instructions', [])[:10]:
+                        a = inst.get("action", "")
+                        if a in ("setColor","setWidth","setBrush","clear","undo","wait"):
+                            continue
+                        label = inst.get("label", "") or ""
+                        brief.append(f"{a}" + (f"({label})" if label else ""))
+                    if brief:
+                        parts.append(f"执行了: {', '.join(brief)}")
+                history_parts.append("\n".join(parts))
+            conversation_history_str = "\n\n".join(history_parts)
+        else:
+            conversation_history_str = "无"
 
-    # 4. 提取 + 校验 (月栖白)
-    instructions_raw = parsed.get("instructions", []) if parsed else []
-    reply = parsed.get("reply", "") if parsed else ""
-    safe = validate_instructions(instructions_raw, existing_ids)
-    logger.info(f"instructions raw={len(instructions_raw)} safe={len(safe)}; dropped={len(instructions_raw) - len(safe)}")
+        raw_output = None
+        try:
+            raw_output = await call_llm(text, grid_json, conversation_history_str)
+            logger.info(f"LLM raw output: {len(raw_output)} chars for '{text[:60]}'")
+        except Exception as e:
+            logger.error(f"LLM call failed: {e}")
 
-    # 5. LLM 完全失败 → 友好提示
-    if not safe:
-        return GenerateResponse(
-            reply=reply or "抱歉，我没有理解那个操作，请再说一遍",
-            instructions=[],
-            source="llm",
-        )
+        # 3. 修复管道
+        parsed = None
+        if raw_output:
+            parsed, repair_err = repair_pipeline(raw_output)
+            if repair_err:
+                logger.warning(f"JSON repair: {repair_err}")
 
-    return GenerateResponse(reply=reply, instructions=safe, source="llm")
+        # 4. 提取 + 校验
+        instructions_raw = parsed.get("instructions", []) if parsed else []
+        reply = parsed.get("reply", "") if parsed else ""
+        safe = validate_instructions(instructions_raw, existing_ids)
+        logger.info(f"instructions raw={len(instructions_raw)} safe={len(safe)}; dropped={len(instructions_raw) - len(safe)}")
+
+        # 5. LLM 完全失败
+        if not safe:
+            return GenerateResponse(
+                reply=reply or "抱歉，我没有理解那个操作，请再说一遍",
+                instructions=[],
+                source="llm",
+            )
+
+        return GenerateResponse(reply=reply, instructions=safe, source="llm")
+
+    except Exception:
+        import traceback
+        logger.error(f"generate_instructions crashed:\n{traceback.format_exc()}")
+        return GenerateResponse(reply="内部错误，请重试", instructions=[], source="error")
 
 
 # ============ 视觉自验证 (Qwen3-VL 多模态) ============
