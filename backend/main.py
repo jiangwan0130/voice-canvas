@@ -14,7 +14,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from config import CANVAS_WIDTH, CANVAS_HEIGHT, GRID_COLS, GRID_ROWS, GRID_LABELS, ALLOWED_ORIGINS
-from llm_client import call_llm
+from llm_client import call_llm, visual_verify
 from json_repair import repair_pipeline
 from command_parser import validate_instructions
 from asr.paraformer_asr import ParaformerASR
@@ -85,15 +85,16 @@ class CanvasState(BaseModel):
     height: int = CANVAS_HEIGHT
     grid: GridState = GridState(cells=[])
 
-class LastAction(BaseModel):
+class ConversationTurn(BaseModel):
     user_text: str = ""
     reply: str = ""
     instructions: List[dict] = []
+    undone: bool = False
 
 class GenerateRequest(BaseModel):
     text: str
     canvas_state: CanvasState = CanvasState()
-    last_action: Optional[LastAction] = None
+    conversation_history: List[ConversationTurn] = []
 
 class GenerateResponse(BaseModel):
     reply: str
@@ -240,29 +241,34 @@ async def generate_instructions(request: Request, req: GenerateRequest):
 
     # 2. LLM 调用 (月栖白)
     grid_json = summarize_grid(req.canvas_state.grid)
-    if req.last_action and (req.last_action.user_text or req.last_action.reply):
-        parts = [
-            f"用户说: \"{req.last_action.user_text}\"",
-            f"助手回复: \"{req.last_action.reply}\"",
-        ]
-        if req.last_action.instructions:
-            # 摘要上一轮指令（只传 action+关键参数, 减少token）
-            brief = []
-            for inst in req.last_action.instructions[:10]:  # 最多10条
-                a = inst.get("action", "")
-                if a in ("setColor","setWidth","setBrush","clear","undo","wait"):
-                    continue  # 跳过控制指令
-                label = inst.get("label", "") or ""
-                brief.append(f"{a}" + (f"({label})" if label else ""))
-            if brief:
-                parts.append(f"上一轮画了: {', '.join(brief)}")
-        last_action_str = "\n".join(parts)
+    if req.conversation_history:
+        history_parts = []
+        for i, turn in enumerate(req.conversation_history, 1):
+            undone_mark = " (已撤销)" if turn.undone else ""
+            parts = [
+                f"### 第{i}轮{undone_mark}",
+                f"用户说: \"{turn.user_text}\"",
+                f"助手回复: \"{turn.reply}\"",
+            ]
+            if turn.instructions:
+                # 摘要本轮指令（只传 action+关键参数, 减少token）
+                brief = []
+                for inst in turn.instructions[:10]:  # 最多10条
+                    a = inst.get("action", "")
+                    if a in ("setColor","setWidth","setBrush","clear","undo","wait"):
+                        continue  # 跳过控制指令
+                    label = inst.get("label", "") or ""
+                    brief.append(f"{a}" + (f"({label})" if label else ""))
+                if brief:
+                    parts.append(f"执行了: {', '.join(brief)}")
+            history_parts.append("\n".join(parts))
+        conversation_history_str = "\n\n".join(history_parts)
     else:
-        last_action_str = "无"
+        conversation_history_str = "无"
 
     raw_output = None
     try:
-        raw_output = await call_llm(text, grid_json, last_action_str)
+        raw_output = await call_llm(text, grid_json, conversation_history_str)
         logger.info(f"LLM raw output: {len(raw_output)} chars for '{text[:60]}'")
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
@@ -289,6 +295,29 @@ async def generate_instructions(request: Request, req: GenerateRequest):
         )
 
     return GenerateResponse(reply=reply, instructions=safe, source="llm")
+
+
+# ============ 视觉自验证 (Qwen3-VL 多模态) ============
+
+class VisualVerifyRequest(BaseModel):
+    image_base64: str  # Canvas 截图的 base64（不含 data:image/xxx;base64, 前缀）
+    expected_prompt: str  # 用户的原始语音意图
+
+
+@app.post("/api/visual-verify")
+@limiter.limit("5/minute")
+async def visual_verify_drawing(request: Request, req: VisualVerifyRequest):
+    """
+    Qwen3-VL 视觉自验证：截图发给多模态模型，检查绘图是否与用户意图一致。
+    返回模型的自然语言反馈（问题列表或 "OK"）。
+    """
+    try:
+        feedback = await visual_verify(req.image_base64, req.expected_prompt)
+        logger.info(f"Visual verify result: {feedback[:100]}")
+        return {"feedback": feedback, "ok": feedback.strip().upper() == "OK"}
+    except Exception as e:
+        logger.error(f"Visual verify failed: {e}")
+        raise HTTPException(500, f"视觉验证失败: {e}")
 
 
 # ============ 启动 ============
