@@ -315,44 +315,30 @@ speak: { "action":"speak", "text":"..." }
 
 
 async def call_llm(user_text: str, grid_json: str = "{}", conversation_history: str = "无") -> str:
-    """调用 Qwen3-VL 多模态模型，返回 LLM 原始文本（JSON 解析/修复由上层 repair_pipeline 统一处理）
-
-    DashScope multimodal-generation API 请求格式:
-      POST https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation
-      Body: { model, input: { messages }, parameters: { result_format, temperature, max_tokens } }
-    响应格式:
-      { output: { choices: [{ message: { content: [{ text: "..." }] } }] } }
-    """
+    """调用 DeepSeek，返回 LLM 原始文本"""
     prompt = (SYSTEM_PROMPT
         .replace('{canvas_width}', str(CANVAS_WIDTH))
         .replace('{canvas_height}', str(CANVAS_HEIGHT))
         .replace('{grid_json}', grid_json)
         .replace('{conversation_history}', conversation_history))
 
-    # DashScope multimodal API 的 messages 格式: content 必须是数组
-    messages = [
-        {"role": "system", "content": [{"text": prompt}]},
-        {"role": "user", "content": [{"text": user_text}]},
-    ]
-
-    request_body = {
-        "model": LLM_MODEL,
-        "input": {"messages": messages},
-        "parameters": {
-            "result_format": "message",
-            "temperature": 0.3,
-            "max_tokens": 8192,
-        },
-    }
-
     async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(
-            LLM_API_BASE,
+            f"{LLM_API_BASE}/chat/completions",
             headers={
                 "Authorization": f"Bearer {LLM_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json=request_body,
+            json={
+                "model": LLM_MODEL,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": user_text},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 8192,
+                "response_format": {"type": "json_object"},
+            },
         )
 
     if response.status_code != 200:
@@ -360,16 +346,7 @@ async def call_llm(user_text: str, grid_json: str = "{}", conversation_history: 
         raise Exception(f"LLM API error {response.status_code}: {response.text[:200]}")
 
     data = response.json()
-    try:
-        # DashScope multimodal 响应: output.choices[0].message.content[0]["text"]
-        content_parts = data["output"]["choices"][0]["message"]["content"]
-        raw_text = "".join(
-            part.get("text", "") for part in content_parts if isinstance(part, dict)
-        )
-        return raw_text
-    except (KeyError, IndexError, TypeError) as e:
-        logger.error(f"Failed to parse DashScope response: {e}\nRaw: {json.dumps(data, ensure_ascii=False)[:500]}")
-        raise Exception(f"LLM response parse error: {e}")
+    return data["choices"][0]["message"]["content"]
 
 
 VISUAL_VERIFY_SYSTEM_PROMPT = """\
