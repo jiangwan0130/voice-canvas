@@ -50,7 +50,7 @@ DEFAULT_PARAMS: dict[str, dict] = {
 }
 
 HEX_RE = re.compile(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$')
-CSS_COLORS = {'red','blue','green','yellow','orange','purple','pink','black','white','gray','grey','brown','cyan','magenta','transparent'}
+CSS_COLORS = {'red','blue','green','yellow','orange','purple','pink','black','white','gray','grey','brown','cyan','magenta','transparent','none'}
 
 # 坐标参数键名常量，避免每次请求重新创建 set
 COORD_KEYS: frozenset[str] = frozenset({'x','y','cx','cy','x1','y1','x2','y2','x3','y3','w','h','r','rx','ry','dx','dy'})
@@ -97,10 +97,12 @@ def validate_instructions(instructions: list[dict], existing_object_ids: set) ->
                     bound = CANVAS_HEIGHT if k.startswith('y') else CANVAS_WIDTH
                     params[k] = max(0, min(params[k], bound))
 
-        # 5. 颜色格式校验
+        # 5. 颜色格式校验（stroke:"none" 是合法值，表示不描边，允许通过）
         for ck in ('color', 'fill'):
             if ck in params and params[ck] and not _is_valid_color(str(params[ck])):
                 params[ck] = '#000000' if ck == 'color' else 'transparent'
+        if 'stroke' in params and params['stroke'] and not _is_valid_color(str(params['stroke'])):
+            params['stroke'] = '#000000'
 
         # 6. target 存在性
         if action in ('update_object', 'move_object', 'delete_object'):
