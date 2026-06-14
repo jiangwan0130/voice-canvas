@@ -239,6 +239,9 @@ export class CanvasRenderer {
     const stroke = (inst.stroke as string) ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
 
+    // stroke:"none" 或 strokeWidth:0 → 跳过描边（多圆叠加时内部轮廓不可见）
+    if (stroke === 'none' || sw === 0) return;
+
     await this.animateStroke((progress) => {
       this.ctx.beginPath();
       this.ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
@@ -268,6 +271,8 @@ export class CanvasRenderer {
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
+
+    if (stroke === 'none' || sw === 0) return;
 
     // 矩形逐段生长：周长比例
     const perimeter = 2 * (w + h);
@@ -376,6 +381,7 @@ export class CanvasRenderer {
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
+    if (stroke === 'none' || sw === 0) return;
 
     await this.animateStroke((progress) => {
       const totalSegments = points.length;
@@ -422,6 +428,7 @@ export class CanvasRenderer {
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
+    if (stroke === 'none' || sw === 0) return;
 
     await this.animateStroke((progress) => {
       this.ctx.beginPath();
@@ -453,6 +460,7 @@ export class CanvasRenderer {
 
     const stroke = inst.stroke as string ?? this.currentColor;
     const sw = (inst.strokeWidth as number) ?? this.currentWidth;
+    if (stroke === 'none' || sw === 0) return;
 
     await this.animateStroke((progress) => {
       const currentAngle = startAngle + (endAngle - startAngle) * progress;

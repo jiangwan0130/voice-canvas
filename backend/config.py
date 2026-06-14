@@ -18,8 +18,8 @@ LLM_MODEL = os.getenv("LLM_MODEL", "qwen3-vl-plus")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
 
 # Canvas
-CANVAS_WIDTH = 900
-CANVAS_HEIGHT = 550
+CANVAS_WIDTH = 750
+CANVAS_HEIGHT = 500
 GRID_COLS = 3
 GRID_ROWS = 2
 

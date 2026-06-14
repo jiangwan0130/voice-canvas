@@ -223,6 +223,8 @@ body::before {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  overflow: auto;
+  min-height: 0;
 }
 
 .app-main canvas {

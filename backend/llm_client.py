@@ -111,36 +111,26 @@ speak: { "action":"speak", "text":"..." }
 
 ## 常见物体绘制配方
 
-画布尺寸 900×550，中心约 (450, 275)。以下配方参考简笔画几何拆分法。
+每个物体用 mode:"both" 直接绘制（含细轮廓+填充），由远及近叠放。
 
-### 配方 1 — 花
-结构: 花心(中心小圆) → 5片花瓣(圆弧围绕花心) → 花茎(细长直线) → 花叶(水滴椭圆在茎两侧)
+**花**: 花茎(line, 绿, sw=1.5) → 5片花瓣(circle, r=25-32, 围绕花心均匀分布) → 花蕊(circle, r=14, 黄)。花瓣颜色可变(红#FF5566/粉#FF88AA/黄#FFCC00)，轮廓用深一阶色。
+**树**: 树干(rect, 棕#8B6914, w=35-45 h=100-140) → 底部左右树冠(circle, r=50-60, 深绿) → 中部大冠(circle, r=60-70, 中绿) → 顶部冠(circle, r=40-50, 亮绿)。冠心轨迹: 从下往上、从外向中心收拢成三角。
+**太阳**: 6-8条光芒(line, 橙#FFAA44, sw=2, 长40-55) → 圆盘(circle, r=45-55, 黄填充橙描边, sw=1.5)覆盖光芒根部。位置: 画布上方偏角。
+**云**: 底排2-3个圆(r=22-28) → 中排2个略大圆(r=28-36) → 顶排1个最大圆(r=35-42)。全白填充+浅灰描边(#DDD-#E8, sw=1.5)。圆间重叠5-10px形成蓬松轮廓。
+**房子**: 墙体(rect, 米白#F5DEB3, w=120-150 h=90-120, 棕描边) → 屋顶(polygon三角形覆盖墙顶, 红#CC4444, 底边=墙宽+20) → 窗2个(rect, 蓝, w=h=24-28, 左右对称) → 门(rect, 深棕, 居中底部)。
+**蝴蝶**: 身体(ellipse竖, 深色#444, rx=6 ry=30, 居中) → 触角2条(curve上弯) → 上翅2片(ellipse, 粉#FF99BB, rx=20 ry=34, 左右对称) → 下翅2片(ellipse, 浅粉#FFBBDD, rx=15 ry=24)。翅上可加小圆斑纹。左右严格对称。
+**小鸟**: 身体(circle, r=32-38, 主色) → 头(circle, r=16-20, 身体左上) → 脚(line×2, 从身体底向下) → 翅膀(ellipse覆身体右侧, rx=10 ry=24) → 嘴(polygon三角, 橙, 头前) → 眼(circle白r=5 → circle黑r=2.5, 最后画在顶层)。
+**草地**: 底层rect, 绿#7BC67E, 铺画布底部1/4, 最先画。
 
-几何分解:
-- 花心: 小圆 r=12-16, 黄色/橙色系, 是花瓣的"锚点"
-- 花瓣: 5个圆围绕花心均匀排列, 每个圆半径25-35, 圆心距花心约30-40px
-- 花瓣位置: 上方1片(正上), 左上1片, 右上1片, 左下1片, 右下1片
-- 花茎: 从花心正下方垂下, 线宽3-4, 长度80-120px, 绿色
-- 花叶: 2片椭圆在茎两侧, rx=8-12 ry=20-28, 水滴形, 一左一右错开
+场景顺序: 草地→天空→太阳→云→房子/树→花/蝴蝶/鸟 (由远及近)。
 
-用户: "用彩铅画一朵红色的花"
-输出: {"reply":"好的，在画布中央画了一朵红色的花","instructions":[
-  {"action":"setBrush","type":"pencil","fillAngle":45,"fillDensity":6,"duration":0},
-  {"action":"setColor","value":"#228B22","duration":0},
-  {"action":"line","x1":450,"y1":270,"x2":450,"y2":380,"stroke":"#228B22","strokeWidth":1.5,"mode":"stroke","duration":300},
-  {"action":"ellipse","cx":435,"cy":340,"rx":8,"ry":22,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1,"mode":"both","duration":250},
-  {"action":"ellipse","cx":465,"cy":320,"rx":8,"ry":20,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1,"mode":"both","duration":250},
-  {"action":"setColor","value":"#CC3355","duration":0},
-  {"action":"circle","cx":450,"cy":220,"r":30,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":450},
-  {"action":"circle","cx":415,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
-  {"action":"circle","cx":485,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
-  {"action":"circle","cx":425,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
-  {"action":"circle","cx":475,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
-  {"action":"setColor","value":"#FFCC00","duration":0},
-  {"action":"circle","cx":450,"cy":248,"r":14,"fill":"#FFCC00","stroke":"#DDAA00","strokeWidth":1.2,"mode":"both","brush":"pencil","fillAngle":45,"duration":300}
-]}
+## 多轮编辑
+- 指代词"它/那个/这个"+网格有对象 → update_object/move_object/delete_object, 禁止clear
+- update_object修改尺寸: params:{"r":newR} 或 {"w":newW,"h":newH}, 增大20-50%
+- move_object: target+dx+dy
+- delete_object: target
 
-花的结构口诀: 花心锚定中心 → 5瓣围绕排 → 茎从花心下 → 叶在茎两侧
+示例: 用户:"把它变大" 网格有树干(obj_1,w=40) → {"action":"update_object","target":"obj_1","params":{"w":55,"h":160}}
 
 ### 配方 2 — 树
 结构: 树干(上细下粗的矩形/梯形) + 树枝(2-4条短线从干顶分叉) + 树冠(3-5个重叠椭圆/圆, 从下往上收拢成三角形轮廓)
