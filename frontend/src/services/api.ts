@@ -33,3 +33,24 @@ export async function generateInstructions(
   }
   return res.json();
 }
+
+/** 视觉自验证：截图发给 Qwen3.7 多模态模型检查绘图质量 */
+export async function visualVerify(
+  imageBase64: string,
+  expectedPrompt: string,
+): Promise<{ feedback: string; ok: boolean }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120_000);
+  const res = await fetch(`${BASE}/visual-verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_base64: imageBase64, expected_prompt: expectedPrompt }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeoutId);
+  if (!res.ok) {
+    console.error('[API] visual-verify failed:', res.status);
+    return { feedback: '', ok: false };
+  }
+  return res.json();
+}

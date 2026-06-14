@@ -15,7 +15,7 @@ import { HistoryManager } from './engine/HistoryManager';
 import { CommandExecutor } from './engine/CommandExecutor';
 import { useVoice } from './hooks/useVoice';
 import { speak } from './hooks/useSpeechFeedback';
-import { transcribeAudio, generateInstructions } from './services/api';
+import { transcribeAudio, generateInstructions, visualVerify } from './services/api';
 import type { CanvasState, ConversationTurn } from './types/commands';
 import type { VoiceStatus } from './hooks/useVoice';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
@@ -80,6 +80,24 @@ function App() {
       if (resp.reply) speak(resp.reply);
       setSubtitle(resp.reply || '完成');
       setObjectCount(storeRef.current.count);
+
+      // 视觉自验证：截图发给 Qwen3.7 检查绘图质量
+      try {
+        const snapshot = canvasRef.current?.getSnapshot();
+        if (snapshot) {
+          // 截掉 data:image/png;base64, 前缀
+          const base64 = snapshot.replace(/^data:image\/\w+;base64,/, '');
+          setSubtitle('🔍 正在检查画布...');
+          const vrf = await visualVerify(base64, text);
+          if (vrf.ok && vrf.feedback === 'OK') {
+            setSubtitle('✅ 验证通过');
+          } else if (vrf.feedback) {
+            setSubtitle(`⚠️ ${vrf.feedback}`);
+          }
+        }
+      } catch {
+        // 验证失败不影响主流程
+      }
 
     } catch (e) {
       console.error('[App] error:', e);
