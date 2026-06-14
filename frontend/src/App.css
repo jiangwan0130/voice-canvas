@@ -32,7 +32,7 @@ body {
 
 /* ---- App Layout ---- */
 .app {
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 20px;
   display: flex;
@@ -103,100 +103,125 @@ body {
   border-radius: 20px;
 }
 
-/* ---- Palette Bar ---- */
-.palette-bar {
+/* ---- Workspace: 左侧工具栏 + 画布 ---- */
+.app-workspace {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- 左侧工具栏 (仿 MS Paint) ---- */
+.toolbar-left {
+  width: 56px;
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 10px 18px;
   border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  overflow-x: auto;
-}
-
-.palette-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-shrink: 0;
 }
 
-.palette-label {
-  font-size: 11px;
+.tool-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.tool-group-label {
+  font-size: 10px;
   font-weight: 700;
-  color: #b0b0b0;
+  color: #c0c0c0;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
 }
 
-.palette-items {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.palette-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--border);
-  flex-shrink: 0;
-}
-
-/* 画笔条目 */
-.palette-brush {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
+.tool-btn {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid transparent;
   border-radius: 8px;
-  background: #f8f8f8;
-  cursor: default;
-  transition: background 0.2s;
-}
-
-.palette-brush:hover {
-  background: #f0f0f0;
-}
-
-.palette-brush-icon {
-  font-size: 14px;
-}
-
-.palette-brush-name {
-  font-size: 11px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transition: all 0.15s ease;
   color: #666;
+}
+
+.tool-btn:hover {
+  background: #f0f4ff;
+  border-color: #d0ddf8;
+}
+
+.tool-btn:active {
+  background: #e0eaff;
+  transform: scale(0.95);
+}
+
+.tool-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tool-name {
+  font-size: 9px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-/* 颜色条目 */
-.palette-color {
+/* ---- 底部颜色条 (仿 MS Paint) ---- */
+.toolbar-bottom {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  cursor: default;
-  transition: background 0.2s;
+  justify-content: center;
+  gap: 0;
+  box-shadow: var(--shadow);
 }
 
-.palette-color:hover {
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.color-swatch:hover {
   background: #f5f5f5;
+  z-index: 1;
 }
 
-.palette-color-dot {
-  width: 14px;
-  height: 14px;
+.color-swatch:hover .color-swatch-dot {
+  transform: scale(1.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.color-swatch-dot {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
-  flex-shrink: 0;
-}
-
-.palette-color-name {
-  font-size: 11px;
-  color: #888;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* ---- Main Canvas Area ---- */
@@ -205,6 +230,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  min-width: 0;
+  margin-left: 10px;
 }
 
 .app-main canvas {
@@ -468,6 +495,11 @@ body {
   .app-header h1 { font-size: 20px; }
   .vb-actions { flex-wrap: wrap; }
   .vb-mic { min-width: 100px; padding: 10px 20px; font-size: 14px; }
+  .toolbar-left { width: 44px; }
+  .tool-btn { width: 36px; height: 36px; }
+  .tool-icon { font-size: 15px; }
+  .color-swatch { width: 26px; height: 26px; }
+  .color-swatch-dot { width: 14px; height: 14px; }
 }
 
 /* ================================================================
