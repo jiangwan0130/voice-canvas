@@ -81,18 +81,36 @@ function App() {
       setSubtitle(resp.reply || '完成');
       setObjectCount(storeRef.current.count);
 
-      // 视觉自验证：截图发给 Qwen3.7 检查绘图质量
+      // 视觉自验证：截图发给 Qwen3.7 检查绘图质量，发现问题自动修复一次
       try {
         const snapshot = canvasRef.current?.getSnapshot();
         if (snapshot) {
-          // 截掉 data:image/png;base64, 前缀
           const base64 = snapshot.replace(/^data:image\/\w+;base64,/, '');
           setSubtitle('🔍 正在检查画布...');
           const vrf = await visualVerify(base64, text);
+
           if (vrf.ok && vrf.feedback === 'OK') {
             setSubtitle('✅ 验证通过');
           } else if (vrf.feedback) {
-            setSubtitle(`⚠️ ${vrf.feedback}`);
+            setSubtitle(`⚠️ 发现问题，正在自动修复...`);
+            // 自动修复：把问题反馈作为新一轮指令发给 LLM
+            const fixText = `修复画布上的问题：${vrf.feedback}`;
+            setStatus('generating');
+            const store2 = storeRef.current;
+            const canvasState2: CanvasState = { width: store2.width, height: store2.height, grid: store2.toGridState() };
+            const resp2 = await generateInstructions(fixText, canvasState2, conversationHistoryRef.current);
+            // 追加修复轮到历史
+            conversationHistoryRef.current = [
+              ...conversationHistoryRef.current,
+              { user_text: fixText, reply: resp2.reply, instructions: resp2.instructions, undone: false },
+            ].slice(-20);
+            setStatus('drawing');
+            if (executorRef.current) {
+              await executorRef.current.execute(resp2.instructions, fixText);
+            }
+            if (resp2.reply) speak(resp2.reply);
+            setSubtitle(`🔧 已修复: ${resp2.reply}`);
+            setObjectCount(storeRef.current.count);
           }
         }
       } catch {
