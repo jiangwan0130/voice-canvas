@@ -7,7 +7,7 @@
 
 ## 🎥 演示
 
-<video src="demo-video.mp4" controls width="100%" style="max-width:800px"></video>
+<video src="https://github.com/jiangwan0130/voice-canvas/releases/download/v1.0.0/demo-video.mp4" controls width="100%"></video>
 
 ---
 
