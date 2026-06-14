@@ -247,13 +247,12 @@ async def generate_instructions(request: Request, req: GenerateRequest):
 
     raw_output = None
     try:
-        result = await call_llm(text, grid_json, last_action_str)
-        raw_output = json.dumps(result, ensure_ascii=False)
-        logger.info(f"LLM success: '{text[:60]}' → {len(result.get('instructions', []))} instructions, reply='{result.get('reply', '')[:40]}'")
+        raw_output = await call_llm(text, grid_json, last_action_str)
+        logger.info(f"LLM raw output: {len(raw_output)} chars for '{text[:60]}'")
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
 
-    # 3. 修复管道 (月栖白)
+    # 3. 修复管道 (月栖白) — 统一处理 JSON 解析/修复
     parsed = None
     if raw_output:
         parsed, repair_err = repair_pipeline(raw_output)
