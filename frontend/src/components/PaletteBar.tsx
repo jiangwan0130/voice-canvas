@@ -1,11 +1,11 @@
 // ============================================================
-// 语绘 (Voice Canvas) — 画笔 & 颜色工具栏
-// 参考: PaintZ / MS Paint / draw.io 经典布局
+// 语绘 (Voice Canvas) — 画笔 & 颜色面板
+// PR #12: 芝士番薯 — UI 打磨
 // ============================================================
 
 const BRUSHES = [
-  { type: 'pencil', icon: '✏️', label: '彩铅', desc: '排线填充' },
-  { type: 'paint',  icon: '🖌️', label: '颜料', desc: '笔触纹理' },
+  { type: 'pencil', label: '✏️ 彩铅', desc: '排线填充' },
+  { type: 'paint',  label: '🖌️ 颜料笔', desc: '笔触纹理' },
 ];
 
 const COLORS = [
@@ -25,28 +25,35 @@ const COLORS = [
 
 export function PaletteBar() {
   return (
-    <>
-      {/* 左侧工具栏 */}
-      <div className="toolbar-left">
-        <div className="tool-group">
-          <span className="tool-group-label">画笔</span>
+    <div className="palette-bar">
+      {/* 画笔 */}
+      <div className="palette-section">
+        <span className="palette-label">画笔</span>
+        <div className="palette-items">
           {BRUSHES.map(b => (
-            <button key={b.type} className="tool-btn" title={`${b.label} — ${b.desc}`}>
-              <span className="tool-icon">{b.icon}</span>
-              <span className="tool-name">{b.label}</span>
-            </button>
+            <span key={b.type} className="palette-brush" title={b.desc}>
+              <span className="palette-brush-icon">{b.label.split(' ')[0]}</span>
+              <span className="palette-brush-name">{b.label.split(' ')[1]}</span>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* 底部颜色条 */}
-      <div className="toolbar-bottom">
-        {COLORS.map(c => (
-          <button key={c.name} className="color-swatch" title={c.name} style={{ '--swatch-color': c.hex } as React.CSSProperties}>
-            <span className="color-swatch-dot" style={{ background: c.hex }} />
-          </button>
-        ))}
+      {/* 分隔 */}
+      <span className="palette-divider" />
+
+      {/* 颜色 */}
+      <div className="palette-section">
+        <span className="palette-label">颜色</span>
+        <div className="palette-items">
+          {COLORS.map(c => (
+            <span key={c.name} className="palette-color" title={c.name}>
+              <span className="palette-color-dot" style={{ background: c.hex }} />
+              <span className="palette-color-name">{c.name}</span>
+            </span>
+          ))}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
