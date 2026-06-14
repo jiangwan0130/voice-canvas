@@ -70,7 +70,8 @@ class PencilBrush implements BrushStrategy {
     color: string,
     canvasGradient: CanvasGradient | null,
     lineWidth: number,
-    alpha: number = 0.8
+    alpha: number = 0.8,
+    lineWidthJitter: number = 0.25
   ): void {
     ctx.globalAlpha = alpha;
     for (let i = -steps; i <= steps; i++) {
@@ -79,11 +80,12 @@ class PencilBrush implements BrushStrategy {
       const endX = startX + dx;
       const endY = startY + dy;
 
-      // 手绘微抖（±0.3px, 模拟彩铅线条的自然不规则）
-      const jx1 = (Math.random() - 0.5) * 0.6;
-      const jy1 = (Math.random() - 0.5) * 0.6;
-      const jx2 = (Math.random() - 0.5) * 0.6;
-      const jy2 = (Math.random() - 0.5) * 0.6;
+      // 手绘微抖（±1.2px, 模拟彩铅线条的自然不规则）
+      const jitter = lineWidth < 0.6 ? 0.8 : 1.2;
+      const jx1 = (Math.random() - 0.5) * jitter * 2;
+      const jy1 = (Math.random() - 0.5) * jitter * 2;
+      const jx2 = (Math.random() - 0.5) * jitter * 2;
+      const jy2 = (Math.random() - 0.5) * jitter * 2;
 
       ctx.beginPath();
       ctx.moveTo(startX + jx1, startY + jy1);
@@ -96,7 +98,8 @@ class PencilBrush implements BrushStrategy {
       } else {
         ctx.strokeStyle = color;
       }
-      ctx.lineWidth = lineWidth;
+      // 线宽微扰，模拟手握彩铅力道不均
+      ctx.lineWidth = Math.max(0.3, lineWidth + (Math.random() - 0.5) * lineWidthJitter);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
