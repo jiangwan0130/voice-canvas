@@ -479,84 +479,66 @@ body {
 
 .login-palette {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 96px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 调色盘形状 */
-.login-palette-plate {
-  width: 90px;
-  height: 90px;
+/* 外圈光环 */
+.login-palette-ring {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  background: #f5f0e8;
-  border: 2.5px solid #e0d5c0;
+  border: 2.5px solid transparent;
+  background: conic-gradient(#FF6B6B, #FF8E53, #FFD93D, #6BCB77, #5B8DEF, #9B6BDF, #FF6B6B) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ring-spin 8s linear infinite;
+}
+
+@keyframes ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 六个彩色圆点 — 环绕在外圈上 */
+.login-palette-colors {
+  position: absolute;
+  inset: -4px;
+  animation: ring-spin 8s linear infinite;
+}
+
+.login-pcolor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 0 0 3px #fff;
+}
+
+/* 6个点等距环绕: angle = i * 60°  for i = 0..5 */
+.login-pcolor--red   { top: -8px; left: 50%; margin-left: -8px; background: #FF6B6B; }
+.login-pcolor--orange{ top: 12%; right: -8px; background: #FF8E53; }
+.login-pcolor--yellow{ bottom: 12%; right: -8px; background: #FFD93D; }
+.login-pcolor--green { bottom: -8px; left: 50%; margin-left: -8px; background: #6BCB77; }
+.login-pcolor--blue  { bottom: 12%; left: -8px; background: #5B8DEF; }
+.login-pcolor--purple{ top: 12%; left: -8px; background: #9B6BDF; }
+
+/* 中心 🎨 */
+.login-palette-center {
   position: relative;
-  box-shadow:
-    0 4px 20px rgba(120, 80, 40, 0.12),
-    inset 0 2px 8px rgba(255, 255, 255, 0.6);
+  z-index: 2;
+  font-size: 28px;
   animation: palette-float 3s ease-in-out infinite;
 }
 
 @keyframes palette-float {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50%      { transform: translateY(-6px) rotate(2deg); }
-}
-
-/* 调色盘上的色点 */
-.login-color-dot {
-  position: absolute;
-  border-radius: 50%;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-.login-color-dot--red    { top: 12px; left: 16px; background: #FF6B6B; }
-.login-color-dot--blue   { top: 10px; left: 40px; background: #5B8DEF; }
-.login-color-dot--yellow { top: 22px; left: 58px; background: #FFD93D; }
-.login-color-dot--green  { top: 38px; left: 18px; background: #6BCB77; }
-.login-color-dot--purple { top: 42px; left: 48px; background: #9B6BDF; }
-.login-color-dot--pink   { top: 30px; left: 34px; background: #FF8DC7; }
-
-.login-palette-hole {
-  position: absolute;
-  top: 22px;
-  left: 68px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #f5f0e8;
-  border: 2px solid #e0d5c0;
-}
-
-/* 画笔 */
-.login-brush {
-  position: absolute;
-  right: -8px;
-  top: -4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: rotate(15deg);
-}
-
-.login-brush-tip {
-  width: 4px;
-  height: 28px;
-  background: linear-gradient(to bottom, #333, #666);
-  border-radius: 0 0 2px 2px;
-}
-
-.login-brush-body {
-  width: 6px;
-  height: 35px;
-  background: linear-gradient(to bottom, #c49a6c, #a0764a);
-  border-radius: 1px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
 }
 
 /* 标题 */
