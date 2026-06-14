@@ -469,7 +469,7 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== 调色盘图标 ===== */
+/* ===== 调色盘 + 声波 并排 ===== */
 .login-brand {
   display: flex;
   flex-direction: column;
@@ -477,68 +477,72 @@ body {
   gap: 14px;
 }
 
-.login-palette {
-  position: relative;
-  width: 96px;
-  height: 96px;
+.login-hero {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 16px;
 }
 
-/* 外圈光环 */
-.login-palette-ring {
-  position: absolute;
-  inset: 0;
+/* ---- 调色盘 ---- */
+.login-palette-body {
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  border: 2.5px solid transparent;
-  background: conic-gradient(#FF6B6B, #FF8E53, #FFD93D, #6BCB77, #5B8DEF, #9B6BDF, #FF6B6B) border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: ring-spin 8s linear infinite;
-}
-
-@keyframes ring-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* 六个彩色圆点 — 环绕在外圈上 */
-.login-palette-colors {
-  position: absolute;
-  inset: -4px;
-  animation: ring-spin 8s linear infinite;
-}
-
-.login-pcolor {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 0 0 3px #fff;
-}
-
-/* 6个点等距环绕: angle = i * 60°  for i = 0..5 */
-.login-pcolor--red   { top: -8px; left: 50%; margin-left: -8px; background: #FF6B6B; }
-.login-pcolor--orange{ top: 12%; right: -8px; background: #FF8E53; }
-.login-pcolor--yellow{ bottom: 12%; right: -8px; background: #FFD93D; }
-.login-pcolor--green { bottom: -8px; left: 50%; margin-left: -8px; background: #6BCB77; }
-.login-pcolor--blue  { bottom: 12%; left: -8px; background: #5B8DEF; }
-.login-pcolor--purple{ top: 12%; left: -8px; background: #9B6BDF; }
-
-/* 中心 🎨 */
-.login-palette-center {
-  position: relative;
-  z-index: 2;
-  font-size: 28px;
+  background: #fff;
+  box-shadow:
+    0 4px 24px rgba(80, 120, 200, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   animation: palette-float 3s ease-in-out infinite;
 }
 
 @keyframes palette-float {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-4px); }
+}
+
+.login-palette-emoji {
+  font-size: 30px;
+}
+
+/* ---- 声波条 ---- */
+.login-soundbars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 52px;
+}
+
+.login-sbar {
+  width: 4px;
+  border-radius: 2px;
+  animation: sbar-dance 0.55s ease-in-out infinite alternate;
+}
+
+.login-sbar:nth-child(1)  { height: 14px; background: #d0ddf8; }
+.login-sbar:nth-child(2)  { height: 20px; background: #bed0f5; }
+.login-sbar:nth-child(3)  { height: 28px; background: #acc3f2; }
+.login-sbar:nth-child(4)  { height: 36px; background: #9ab6ef; }
+.login-sbar:nth-child(5)  { height: 44px; background: #88a9ec; }
+.login-sbar:nth-child(6)  { height: 50px; background: #769ce9; }
+.login-sbar:nth-child(7)  { height: 52px; background: #648fe6; }
+.login-sbar:nth-child(8)  { height: 52px; background: #5282e3; }
+.login-sbar:nth-child(9)  { height: 52px; background: #648fe6; }
+.login-sbar:nth-child(10) { height: 50px; background: #769ce9; }
+.login-sbar:nth-child(11) { height: 44px; background: #88a9ec; }
+.login-sbar:nth-child(12) { height: 36px; background: #9ab6ef; }
+.login-sbar:nth-child(13) { height: 28px; background: #acc3f2; }
+.login-sbar:nth-child(14) { height: 20px; background: #bed0f5; }
+.login-sbar:nth-child(15) { height: 14px; background: #d0ddf8; }
+.login-sbar:nth-child(16) { height: 10px; background: #e0e8fc; }
+
+@keyframes sbar-dance {
+  0%   { transform: scaleY(0.4); opacity: 0.4; }
+  100% { transform: scaleY(1.05); opacity: 1; }
 }
 
 /* 标题 */

@@ -48,18 +48,18 @@ export function LoginPage({ onEnter }: LoginPageProps) {
       {/* 主卡片 */}
       <div className="login-card">
         <div className="login-brand">
-          {/* 调色盘 — 彩色圆环 */}
-          <div className="login-palette">
-            <div className="login-palette-ring" />
-            <div className="login-palette-colors">
-              <span className="login-pcolor login-pcolor--red" />
-              <span className="login-pcolor login-pcolor--orange" />
-              <span className="login-pcolor login-pcolor--yellow" />
-              <span className="login-pcolor login-pcolor--green" />
-              <span className="login-pcolor login-pcolor--blue" />
-              <span className="login-pcolor login-pcolor--purple" />
+          {/* 调色盘 + 声波 并排 */}
+          <div className="login-hero">
+            {/* 调色盘 */}
+            <div className="login-palette-body">
+              <span className="login-palette-emoji">🎨</span>
             </div>
-            <span className="login-palette-center">🎨</span>
+            {/* 声波条 */}
+            <div className="login-soundbars">
+              {[...Array(16)].map((_, i) => (
+                <span key={i} className="login-sbar" style={{ animationDelay: `${i * 0.08}s` }} />
+              ))}
+            </div>
           </div>
 
           <h1 className="login-title">
