@@ -81,25 +81,31 @@ function App() {
       setSubtitle(resp.reply || '完成');
       setObjectCount(storeRef.current.count);
 
-      // 视觉自验证：截图发给 Qwen3.7 检查绘图质量，发现问题自动修复一次
+      // 视觉自验证 + 自动修复循环（最多 2 次修复）
+      const MAX_FIX_RETRIES = 2;
       try {
-        const snapshot = canvasRef.current?.getSnapshot();
-        if (snapshot) {
+        for (let retry = 0; retry <= MAX_FIX_RETRIES; retry++) {
+          const snapshot = canvasRef.current?.getSnapshot();
+          if (!snapshot) break;
           const base64 = snapshot.replace(/^data:image\/\w+;base64,/, '');
-          setSubtitle('🔍 正在检查画布...');
+          setSubtitle(retry === 0 ? '🔍 正在检查画布...' : `🔍 第${retry}次复查...`);
           const vrf = await visualVerify(base64, text);
 
           if (vrf.ok && vrf.feedback === 'OK') {
-            setSubtitle('✅ 验证通过');
-          } else if (vrf.feedback) {
-            setSubtitle(`⚠️ 发现问题，正在自动修复...`);
-            // 自动修复：把问题反馈作为新一轮指令发给 LLM
+            setSubtitle(retry === 0 ? '✅ 验证通过' : `✅ 第${retry}次修复后通过`);
+            break; // 通过，结束循环
+          }
+
+          if (!vrf.feedback) break; // 无反馈，无法修复
+
+          if (retry < MAX_FIX_RETRIES) {
+            // 还没到上限，自动修复
+            setSubtitle(`⚠️ 第${retry + 1}次修复中...`);
             const fixText = `修复画布上的问题：${vrf.feedback}`;
             setStatus('generating');
             const store2 = storeRef.current;
-            const canvasState2: CanvasState = { width: store2.width, height: store2.height, grid: store2.toGridState() };
-            const resp2 = await generateInstructions(fixText, canvasState2, conversationHistoryRef.current);
-            // 追加修复轮到历史
+            const cs2: CanvasState = { width: store2.width, height: store2.height, grid: store2.toGridState() };
+            const resp2 = await generateInstructions(fixText, cs2, conversationHistoryRef.current);
             conversationHistoryRef.current = [
               ...conversationHistoryRef.current,
               { user_text: fixText, reply: resp2.reply, instructions: resp2.instructions, undone: false },
@@ -109,8 +115,11 @@ function App() {
               await executorRef.current.execute(resp2.instructions, fixText);
             }
             if (resp2.reply) speak(resp2.reply);
-            setSubtitle(`🔧 已修复: ${resp2.reply}`);
             setObjectCount(storeRef.current.count);
+            // 循环继续，下次迭代重新截图验证
+          } else {
+            // 到达上限，显示剩余问题
+            setSubtitle(`⚠️ 修复${MAX_FIX_RETRIES}次后仍有问题: ${vrf.feedback}`);
           }
         }
       } catch {
