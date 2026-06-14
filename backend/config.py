@@ -7,11 +7,10 @@ load_dotenv()
 # 阿里云百炼 ASR（Paraformer）
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
-# Qwen 多模态 LLM（阿里云百炼 DashScope，与 ASR 共用 DASHSCOPE_API_KEY）
-# 模型: qwen3.7-plus（最新旗舰，文本+视觉理解）
+# Qwen 通义千问（DashScope OpenAI 兼容模式）
 LLM_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
-LLM_API_BASE = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation")
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen3.7-plus")
+LLM_API_BASE = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen-plus")
 
 # CORS
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
