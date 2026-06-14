@@ -7,7 +7,7 @@
 
 ## 🎥 演示
 
-> 📺 [在线观看 Demo 视频](#)（待替换为实际链接）
+> 📺 [在线观看 Demo 视频](demo-video.mp4)
 
 [演示稿](docs/demo_script.md)
 
