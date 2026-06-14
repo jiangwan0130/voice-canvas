@@ -357,7 +357,7 @@ body {
 }
 
 /* ================================================================
-   Login Page
+   Login Page — 声纹主题
    ================================================================ */
 
 .login-page {
@@ -368,132 +368,199 @@ body {
   position: relative;
   overflow: hidden;
   transition: opacity 0.6s ease, transform 0.6s ease;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background: #0a0a1a;
 }
 
 .login-page--out {
   opacity: 0;
-  transform: scale(0.97);
+  transform: scale(0.96);
+  filter: blur(4px);
 }
 
-/* Background orbs */
-.login-bg {
+/* ===== 声纹波形背景 ===== */
+.login-waves {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
 }
 
-.login-orb {
+.login-wave-svg {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.25;
-  animation: orb-drift 8s ease-in-out infinite alternate;
+  width: 100%;
 }
 
-.login-orb--1 {
-  width: 400px; height: 400px;
-  background: #1677ff;
-  top: -100px; right: -80px;
-  animation-delay: 0s;
+.login-wave-svg--bottom {
+  bottom: 0;
+  height: 55%;
 }
 
-.login-orb--2 {
-  width: 300px; height: 300px;
-  background: #722ed1;
-  bottom: -80px; left: -60px;
-  animation-delay: -3s;
+.login-wave-svg--top {
+  top: 0;
+  height: 30%;
+  transform: scaleY(-1);
 }
 
-.login-orb--3 {
-  width: 250px; height: 250px;
-  background: #eb2f96;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: -6s;
-  animation-duration: 10s;
+.login-wave-path {
+  animation: wave-float 6s ease-in-out infinite alternate;
 }
 
-@keyframes orb-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(30px, -30px) scale(1.15); }
+.login-wave-path--1 {
+  fill: rgba(100, 130, 255, 0.12);
+  animation-duration: 7s;
 }
 
-/* Login card */
+.login-wave-path--2 {
+  fill: rgba(160, 100, 255, 0.08);
+  animation-duration: 5s;
+}
+
+.login-wave-path--3 {
+  fill: rgba(255, 100, 180, 0.06);
+  animation-duration: 8s;
+}
+
+@keyframes wave-float {
+  0%   { transform: translateX(0) scaleY(1); }
+  100% { transform: translateX(-3%) scaleY(1.15); }
+}
+
+/* ===== 卡片 ===== */
 .login-card {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  border-radius: 24px;
-  padding: 48px 40px;
-  width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: rgba(18, 18, 36, 0.85);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  padding: 52px 44px;
+  width: 420px;
+  max-width: 92vw;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  animation: card-in 0.6s ease-out;
+  gap: 36px;
+  animation: card-in 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 0 80px rgba(100, 130, 255, 0.12),
+    0 0 40px rgba(160, 100, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Logo area */
-.login-logo {
-  text-align: center;
+/* ===== 品牌标识区 ===== */
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
 }
 
-.login-icon {
-  font-size: 56px;
-  display: block;
-  margin-bottom: 12px;
-  animation: icon-bounce 2s ease-in-out infinite;
+/* 声纹麦克风图标 */
+.login-voice-icon {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes icon-bounce {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
+.login-voice-emoji {
+  font-size: 36px;
+  position: relative;
+  z-index: 2;
 }
 
+.login-voice-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(100, 140, 255, 0.4);
+  animation: voice-ripple 2.5s ease-out infinite;
+}
+
+.login-voice-ring--1 {
+  width: 100%; height: 100%;
+  animation-delay: 0s;
+}
+
+.login-voice-ring--2 {
+  width: 130%; height: 130%;
+  animation-delay: 0.6s;
+  border-color: rgba(160, 120, 255, 0.25);
+}
+
+.login-voice-ring--3 {
+  width: 170%; height: 170%;
+  animation-delay: 1.2s;
+  border-color: rgba(255, 120, 180, 0.15);
+}
+
+@keyframes voice-ripple {
+  0%   { transform: scale(0.8); opacity: 0.9; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* 跳动声波条 */
+.login-wave-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+}
+
+.login-wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to top, #6490ff, #a878ff, #ff78b4);
+  animation: bar-bounce 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes bar-bounce {
+  0%   { transform: scaleY(0.4); opacity: 0.6; }
+  100% { transform: scaleY(1);   opacity: 1; }
+}
+
+/* 标题 */
 .login-title {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .login-title-cn {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 800;
-  background: linear-gradient(135deg, #1677ff, #722ed1);
+  background: linear-gradient(135deg, #6490ff 0%, #a878ff 50%, #ff78b4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: 0.1em;
 }
 
 .login-title-en {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  color: #8c8c8c;
-  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.25em;
   text-transform: uppercase;
 }
 
 .login-desc {
-  margin-top: 10px;
-  font-size: 15px;
-  color: #999;
+  margin-top: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
-/* Form */
+/* ===== 输入区 ===== */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .login-input-group {
@@ -505,60 +572,139 @@ body {
 .login-label {
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.login-input-wrap {
+  position: relative;
 }
 
 .login-input {
+  width: 100%;
   padding: 14px 18px;
-  border: 2px solid #e8e8e8;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   font-size: 16px;
   outline: none;
-  transition: all 0.25s ease;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.login-input:focus {
-  border-color: #1677ff;
-  box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.1);
-  background: #fff;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  caret-color: #6490ff;
 }
 
 .login-input::placeholder {
-  color: #ccc;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.login-input:focus {
+  border-color: rgba(100, 144, 255, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(100, 144, 255, 0.08),
+    0 0 30px rgba(100, 144, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 输入框底部声纹装饰线 */
+.login-input-line {
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(100, 144, 255, 0.6) 15%,
+    rgba(168, 120, 255, 0.8) 50%,
+    rgba(255, 120, 180, 0.6) 85%,
+    transparent
+  );
+  transform: scaleX(0.3);
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+
+.login-input:focus ~ .login-input-line,
+.login-input-wrap:focus-within .login-input-line {
+  transform: scaleX(1);
+  opacity: 1;
 }
 
 .login-hint {
   font-size: 12px;
-  color: #bbb;
+  color: rgba(255, 255, 255, 0.25);
   text-align: right;
 }
 
+/* ===== 按钮 ===== */
 .login-btn {
-  padding: 14px;
+  position: relative;
+  padding: 15px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, #1677ff, #722ed1);
+  background: linear-gradient(135deg, #5078e0, #8058d0);
   color: #fff;
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
-  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #6490ff, #a878ff, #ff78b4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.login-btn:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(22, 119, 255, 0.35);
+  box-shadow:
+    0 12px 32px rgba(80, 100, 220, 0.4),
+    0 0 60px rgba(100, 120, 255, 0.15);
 }
 
 .login-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.login-footer {
-  text-align: center;
-  font-size: 12px;
-  color: #bbb;
+.login-btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* 按钮内声波动画 */
+.login-btn-wave {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.login-btn-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  animation: btn-wave 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes btn-wave {
+  0%   { height: 4px;  opacity: 0.5; }
+  100% { height: 16px; opacity: 1; }
 }
