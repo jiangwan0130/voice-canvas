@@ -104,8 +104,8 @@ class ConversationTurn(BaseModel):
 
 class GenerateRequest(BaseModel):
     text: str
-    canvas_state: CanvasState = CanvasState()
-    conversation_history: List[ConversationTurn] = []
+    canvas_state: Dict[str, Any] = {}
+    conversation_history: List[Dict[str, Any]] = []
 
 class GenerateResponse(BaseModel):
     reply: str
@@ -238,9 +238,12 @@ async def generate_instructions(request: Request, req: GenerateRequest):
 
     # 0. 收集已有对象 ID（用于 target 存在性校验）
     existing_ids: set[str] = set()
-    for cell in req.canvas_state.grid.cells:
-        for obj in cell.objects:
-            existing_ids.add(obj.id)
+    canvas_grid = req.canvas_state.get('grid', {})
+    for cell in canvas_grid.get('cells', []):
+        for obj in cell.get('objects', []):
+            oid = obj.get('id', '')
+            if oid:
+                existing_ids.add(oid)
 
     # 1. 本地规则引擎 (芝士番薯)
     local_result = route(text)
@@ -254,17 +257,23 @@ async def generate_instructions(request: Request, req: GenerateRequest):
         )
 
     # 2. LLM 调用 (月栖白)
-    grid_json = summarize_grid(req.canvas_state.grid)
+    # 将 dict 转为 Pydantic 对象供 summarize_grid 使用
+    from pydantic import ValidationError
+    try:
+        canvas_grid_obj = GridState(**canvas_grid)
+    except ValidationError:
+        canvas_grid_obj = GridState(cells=[])
+    grid_json = summarize_grid(canvas_grid_obj)
     if req.conversation_history:
         history_parts = []
         for i, turn in enumerate(req.conversation_history, 1):
-            undone_mark = " (已撤销)" if turn.undone else ""
+            undone_mark = " (已撤销)" if turn.get('undone', False) else ""
             parts = [
                 f"### 第{i}轮{undone_mark}",
-                f"用户说: \"{turn.user_text}\"",
-                f"助手回复: \"{turn.reply}\"",
+                f"用户说: \"{turn.get('user_text', '')}\"",
+                f"助手回复: \"{turn.get('reply', '')}\"",
             ]
-            if turn.instructions:
+            if turn.get('instructions'):
                 # 摘要本轮指令（只传 action+关键参数, 减少token）
                 brief = []
                 for inst in turn.instructions[:10]:  # 最多10条
