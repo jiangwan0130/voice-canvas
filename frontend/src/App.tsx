@@ -189,7 +189,7 @@ function App() {
       <header className="app-header">
         <div className="app-header-left">
           <span className="app-back" onClick={() => setPage('login')} title="返回登录">←</span>
-          <h1>🎨 语绘 Voice Canvas</h1>
+          <h1>🎨 <span className="app-title-cn">语绘</span> <span className="app-title-en">Voice Canvas</span></h1>
         </div>
         <span className="app-user">{username}</span>
       </header>
