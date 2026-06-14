@@ -209,17 +209,17 @@ function App() {
 
       <CommandHistory items={history} maxShow={5} />
 
-      {/* 调试输入 — 开发环境可见 */}
-      <div className="debug-row">
+      {/* 文本输入 — 临时替代语音 */}
+      <div className="text-input-bar">
         <input
           type="text"
           value={debugText}
           onChange={e => setDebugText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleDebugSend()}
-          placeholder="输入指令调试..."
-          className="debug-input"
+          placeholder="输入指令，例如：画一只猫、加个太阳..."
+          className="text-input"
         />
-        <button onClick={handleDebugSend} className="debug-send">发送</button>
+        <button onClick={handleDebugSend} className="text-send">发送</button>
       </div>
 
       <main className="app-main">
