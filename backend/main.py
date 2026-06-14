@@ -241,7 +241,22 @@ async def generate_instructions(request: Request, req: GenerateRequest):
     # 2. LLM 调用 (月栖白)
     grid_json = summarize_grid(req.canvas_state.grid)
     if req.last_action and (req.last_action.user_text or req.last_action.reply):
-        last_action_str = f"用户说: \"{req.last_action.user_text}\"\n助手回复: \"{req.last_action.reply}\""
+        parts = [
+            f"用户说: \"{req.last_action.user_text}\"",
+            f"助手回复: \"{req.last_action.reply}\"",
+        ]
+        if req.last_action.instructions:
+            # 摘要上一轮指令（只传 action+关键参数, 减少token）
+            brief = []
+            for inst in req.last_action.instructions[:10]:  # 最多10条
+                a = inst.get("action", "")
+                if a in ("setColor","setWidth","setBrush","clear","undo","wait"):
+                    continue  # 跳过控制指令
+                label = inst.get("label", "") or ""
+                brief.append(f"{a}" + (f"({label})" if label else ""))
+            if brief:
+                parts.append(f"上一轮画了: {', '.join(brief)}")
+        last_action_str = "\n".join(parts)
     else:
         last_action_str = "无"
 
