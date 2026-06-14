@@ -681,11 +681,27 @@ body {
   cursor: not-allowed;
 }
 
-.login-btn-arrow {
-  transition: transform 0.3s ease;
-  font-size: 18px;
+/* 按钮内声纹 */
+.login-btn-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
 }
 
-.login-btn:hover:not(:disabled) .login-btn-arrow {
-  transform: translateX(3px);
+.login-btn-wbar {
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: btn-wbar-dance 0.5s ease-in-out infinite alternate;
+}
+
+.login-btn-wbar:nth-child(1) { height: 6px;  animation-delay: 0s; }
+.login-btn-wbar:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+.login-btn-wbar:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+.login-btn-wbar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+
+@keyframes btn-wbar-dance {
+  0%   { transform: scaleY(0.5); opacity: 0.5; }
+  100% { transform: scaleY(1);   opacity: 1; }
 }

@@ -95,7 +95,12 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             disabled={!name.trim()}
           >
             进入画室
-            <span className="login-btn-arrow">→</span>
+            <span className="login-btn-wave">
+              <span className="login-btn-wbar" />
+              <span className="login-btn-wbar" />
+              <span className="login-btn-wbar" />
+              <span className="login-btn-wbar" />
+            </span>
           </button>
         </div>
       </div>
