@@ -7,7 +7,7 @@
 
 ## 🎥 演示
 
-<iframe src="//player.bilibili.com/player.html?bvid=BV137JK69EuP&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="100%" height="480"></iframe>
+[![B站演示视频](https://img.shields.io/badge/演示视频-哔哩哔哩-00A1D6?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV137JK69EuP/)
 
 ---
 
