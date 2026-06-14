@@ -5,6 +5,14 @@
 
 ---
 
+## 🎥 演示
+
+> 📺 [在线观看 Demo 视频](#)（待替换为实际链接）
+
+[演示稿](docs/demo_script.md)
+
+---
+
 ## ✨ 效果演示
 
 对着麦克风说：
@@ -16,7 +24,7 @@
 "撤销"
 ```
 
-AI 逐笔渲染，所见即所得。
+AI 逐笔渲染，所见即所得。画完还会**自己看图检查**，发现问题自动修复。
 
 ---
 
@@ -28,9 +36,11 @@ AI 逐笔渲染，所见即所得。
         ┌─────────────────────────────────┐
         │   FastAPI 后端                    │
         │   ├─ 本地规则引擎（简单指令直达）    │
-        │   └─ DeepSeek V4（复杂绘图理解）    │
-        │       + JSON 修复管道              │
-        │       + Command Parser 安全校验    │
+        │   ├─ Qwen3.7-Plus（复杂绘图理解）   │
+        │   │   + JSON 修复管道              │
+        │   │   + Command Parser 安全校验    │
+        │   └─ Qwen3-VL（视觉自验证）         │
+        │       └─ 截图审核 → 自动修复循环    │
         └───────────────┬───────────────────┘
                         ↓ JSON 指令序列
         ┌─────────────────────────────────┐
@@ -40,6 +50,7 @@ AI 逐笔渲染，所见即所得。
         │   ├─ linear/radial 渐变系统       │
         │   ├─ ObjectStore 空间网格管理      │
         │   ├─ HistoryManager 撤销/重做     │
+        │   ├─ FuzzyMatcher 四级模糊匹配     │
         │   └─ TTS 语音反馈                 │
         └─────────────────────────────────┘
 ```
@@ -51,9 +62,10 @@ AI 逐笔渲染，所见即所得。
 | 层 | 技术 | 说明 |
 |----|------|------|
 | 前端框架 | React 18 + TypeScript + Vite | SPA 开发 |
-| 画布渲染 | Canvas 2D API | 逐笔动画 + 画笔 + 渐变 |
-| 语音识别 | 阿里云百炼 Paraformer (主) / Web Speech API (降级) | 实时语音转文字 |
-| 大模型 | DeepSeek V4-Flash (官方直连) | 自然语言 → 绘图指令 |
+| 画布渲染 | Canvas 2D API | 逐笔动画 + 双画笔 + 渐变 |
+| 语音识别 | 阿里云百炼 Paraformer（主）/ Web Speech API（降级） | 实时语音转文字 |
+| 文本模型 | Qwen3.7-Plus（阿里云百炼 DashScope 兼容模式） | 自然语言 → 绘图指令 |
+| 视觉模型 | Qwen3-VL-Plus（阿里云百炼 DashScope 兼容模式） | 截图审核 + 自动修复建议 |
 | 后端 | FastAPI + httpx | 异步 HTTP 网关 |
 | 语音反馈 | 浏览器 SpeechSynthesis API | TTS 播报 |
 
@@ -65,8 +77,7 @@ AI 逐笔渲染，所见即所得。
 
 - Python 3.10+
 - Node.js 18+
-- DeepSeek API Key（[platform.deepseek.com](https://platform.deepseek.com)）
-- 阿里云百炼 API Key（可选，[dashscope.aliyun.com](https://dashscope.aliyun.com)）
+- 阿里云百炼 API Key（[dashscope.aliyun.com](https://dashscope.aliyun.com)）— ASR + LLM + VL 共用同一个 Key
 
 ### 1. 配置环境变量
 
@@ -77,13 +88,15 @@ cp .env.example .env
 编辑 `.env`，填入 API Key：
 
 ```env
-# 阿里云百炼 ASR（可选，不填会降级浏览器语音识别）
+# 阿里云百炼 API Key（ASR / LLM / VL 共用）
 DASHSCOPE_API_KEY=sk-your-dashscope-key
 
-# DeepSeek LLM（必须）
-LLM_API_KEY=sk-your-deepseek-key
-LLM_API_BASE=https://api.deepseek.com/v1
-LLM_MODEL=deepseek-v4-flash
+# LLM 模型（DashScope OpenAI 兼容模式）
+LLM_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1
+LLM_MODEL=qwen3.7-plus
+
+# 视觉自验证模型
+VISUAL_MODEL=qwen3-vl-plus
 ```
 
 ### 2. 启动后端
@@ -106,7 +119,7 @@ npm run dev
 
 ### 4. 打开浏览器
 
-访问 **http://localhost:5173**，允许麦克风权限，点击 🎤 开始说话。
+访问 **http://localhost:5173**，输入昵称进入画布，允许麦克风权限，点击 🎤 开始说话。
 
 ---
 
@@ -117,6 +130,7 @@ npm run dev
 | `/health` | GET | 健康检查 |
 | `/api/asr` | POST | 语音识别（上传音频，返回文本） |
 | `/api/generate` | POST | 绘图指令生成（文本 + 画布状态 → JSON 指令序列） |
+| `/api/visual-verify` | POST | 视觉自验证（Canvas 截图 + 原始意图 → 审核反馈） |
 
 ### `/api/generate` 请求示例
 
@@ -124,11 +138,11 @@ npm run dev
 {
   "text": "画一个红色的圆",
   "canvas_state": {
-    "width": 1200,
-    "height": 800,
+    "width": 750,
+    "height": 500,
     "grid": { "cells": [...] }
   },
-  "last_action": { "reply": "", "instructions": [] }
+  "conversation_history": []
 }
 ```
 
@@ -140,7 +154,7 @@ npm run dev
   "instructions": [
     {
       "action": "circle",
-      "cx": 600, "cy": 400, "r": 80,
+      "cx": 375, "cy": 250, "r": 80,
       "fill": "#FF4444",
       "stroke": "#CC0000",
       "strokeWidth": 2,
@@ -152,7 +166,7 @@ npm run dev
     },
     {
       "action": "circle",
-      "cx": 600, "cy": 400, "r": 80,
+      "cx": 375, "cy": 250, "r": 80,
       "fill": "#FF4444",
       "mode": "fill",
       "brush": "paint",
@@ -200,6 +214,43 @@ npm run dev
 
 ---
 
+## 🧠 核心设计
+
+### 双引擎路由
+
+- **本地规则引擎**：撤销、重做、清屏、切换颜色/画笔 等高频操作走本地关键词匹配，响应 < 1ms
+- **LLM 引擎**：复杂绘图意图路由到 Qwen3.7-Plus，配合系统提示词中的 10 种物体配方（树/花/房子/太阳等）生成结构化指令
+
+### 空间网格系统
+
+画布 750×500 划分为 3×2 网格，每个格子附带中文标签（左上/中上/右上/左下/中下/右下）和坐标范围。每次请求摘要化网格状态发给 LLM，相比直接 dump 减少 60-70% token 消耗。
+
+### 四级模糊匹配
+
+编辑时无需记住对象 ID，通过自然语言指代：
+1. **标签匹配** — "太阳"/"云"/"树" → 精确找到
+2. **颜色匹配** — "红色的那个" → 按填充色查找
+3. **位置匹配** — "左边的"/"上面的" → 按空间方位查找
+4. **最近对象** — 以上都不匹配 → 返回最后画的对象
+
+### 三层 JSON 修复 + 七项安全校验
+
+LLM 输出经过：
+1. Markdown 剥离 → 括号栈补全 → 字段校验退化
+2. action 白名单 / 必填参数检查 / 默认值补全 / 坐标钳位 / 颜色校验 / target 存在性 / 数值类型强制
+
+不合规指令逐条丢弃，不影响批次中其他合法指令。
+
+### 视觉自验证闭环
+
+「画 → 看 → 修」自动循环：
+1. 绘图完成后，前端截取 Canvas 画面（base64）
+2. 后端调用 Qwen3-VL 多模态模型，对比用户原始意图审核画面
+3. 发现问题 → 自动生成修复指令 → 重新绘图 → 再次验证
+4. 最多修复 2 轮（初绘 + 2 次修复）
+
+---
+
 ## 📁 项目结构
 
 ```
@@ -209,7 +260,7 @@ voice-canvas/
 │   ├── config.py                # 环境变量配置
 │   ├── router.py                # 指令路由（本地 / LLM）
 │   ├── local_rules.py           # 本地规则引擎
-│   ├── llm_client.py            # DeepSeek 客户端
+│   ├── llm_client.py            # LLM 客户端 + visual_verify
 │   ├── json_repair.py           # LLM 输出修复管道
 │   ├── command_parser.py        # 指令安全校验
 │   └── asr/
@@ -217,27 +268,33 @@ voice-canvas/
 │       └── qwen_asr.py          # Qwen ASR（预留）
 ├── frontend/                    # React + Vite 前端
 │   └── src/
-│       ├── App.tsx              # 主应用组件
+│       ├── App.tsx              # 主应用（含视觉自验证修复循环）
 │       ├── App.css              # 全局样式
+│       ├── config.ts            # 画布常量
 │       ├── components/
 │       │   ├── Canvas.tsx       # 画布组件
+│       │   ├── LoginPage.tsx    # 登录页（水彩背景 + 海浪动画）
+│       │   ├── VoiceBar.tsx     # 语音控制栏
+│       │   ├── PaletteBar.tsx   # 调色板
+│       │   ├── CommandHistory.tsx # 命令历史
 │       │   └── ErrorBoundary.tsx # 错误边界
 │       ├── engine/
 │       │   ├── renderer.ts      # 逐笔动画渲染器
-│       │   ├── brush.ts         # 画笔系统
+│       │   ├── brush.ts         # 画笔系统（铅笔排线 + 颜料水彩）
 │       │   ├── ObjectStore.ts   # 对象管理 + 空间网格
 │       │   ├── HistoryManager.ts # 撤销历史
-│       │   ├── FuzzyMatcher.ts  # 模糊对象匹配
+│       │   ├── FuzzyMatcher.ts  # 四级模糊对象匹配
 │       │   └── CommandExecutor.ts # 指令分发执行器
 │       ├── hooks/
 │       │   ├── useVoice.ts      # 录音 + VAD
 │       │   └── useSpeechFeedback.ts # TTS
 │       ├── services/
-│       │   └── api.ts           # HTTP 通信
+│       │   └── api.ts           # HTTP 通信（含 visualVerify）
 │       └── types/
 │           └── commands.ts      # 指令 TS 类型定义
 ├── .env.example                 # 环境变量模板
-├── docs/                        # 设计文档
+├── docs/                        # 设计文档 + 演示稿
+│   ├── demo_script.md           # Demo 演示脚本
 │   └── design/
 │       ├── 2026-06-12-语绘-voice-canvas-design.md
 │       ├── 2026-06-13-语绘-统一项目计划.md
