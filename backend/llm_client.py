@@ -71,6 +71,13 @@ speak: { "action":"speak", "text":"..." }
 4. 相邻花瓣/叶片之间：保留 2-5px 间距，不紧贴，避免边界融合
 5. 轮廓线只在物体**外边缘**可见，内部重叠处由填充自然覆盖
 
+### 轮廓线弱化规则（关键）
+1. **轮廓线不要用纯黑色**：stroke 颜色应比 fill 颜色深1-2个色阶即可，例如红色花瓣的轮廓用 #CC3355（深红）而不是 #000000
+2. **轮廓线要细**：strokeWidth 用 1.2-2，不使用 3-4 的粗线
+3. **先轮廓后填充**：用 mode:"stroke" 画细轮廓 → 用 mode:"fill" 上色覆盖 → 轮廓线被填充自然柔化
+4. **不要重复描边**：填充之后不要再画一次轮廓线
+5. 最终效果：外层可见细轮廓，内部颜色饱满，轮廓与填充自然融合
+
 ### 其他原则
 6. 组合对象使用相同 groupId，role="body" 标记主体
 7. 坐标参考网格，避免与已有对象重叠（保持至少 30px 间距）
@@ -96,17 +103,17 @@ speak: { "action":"speak", "text":"..." }
 输出: {"reply":"好的，在画布中央画了一朵红色的花","instructions":[
   {"action":"setBrush","type":"pencil","fillAngle":45,"fillDensity":6,"duration":0},
   {"action":"setColor","value":"#228B22","duration":0},
-  {"action":"line","x1":450,"y1":270,"x2":450,"y2":380,"stroke":"#228B22","strokeWidth":3,"mode":"stroke","duration":300},
-  {"action":"ellipse","cx":435,"cy":340,"rx":8,"ry":22,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1.5,"mode":"both","duration":250},
-  {"action":"ellipse","cx":465,"cy":320,"rx":8,"ry":20,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1.5,"mode":"both","duration":250},
+  {"action":"line","x1":450,"y1":270,"x2":450,"y2":380,"stroke":"#228B22","strokeWidth":1.5,"mode":"stroke","duration":300},
+  {"action":"ellipse","cx":435,"cy":340,"rx":8,"ry":22,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1,"mode":"both","duration":250},
+  {"action":"ellipse","cx":465,"cy":320,"rx":8,"ry":20,"fill":"#228B22","stroke":"#1B6B1B","strokeWidth":1,"mode":"both","duration":250},
   {"action":"setColor","value":"#CC3355","duration":0},
-  {"action":"circle","cx":450,"cy":220,"r":30,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":450},
-  {"action":"circle","cx":415,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
-  {"action":"circle","cx":485,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
-  {"action":"circle","cx":425,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
-  {"action":"circle","cx":475,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
+  {"action":"circle","cx":450,"cy":220,"r":30,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":450},
+  {"action":"circle","cx":415,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
+  {"action":"circle","cx":485,"cy":245,"r":28,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":420},
+  {"action":"circle","cx":425,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
+  {"action":"circle","cx":475,"cy":275,"r":26,"fill":"#FF5566","stroke":"#CC3355","strokeWidth":1.5,"mode":"both","brush":"pencil","fillAngle":45,"duration":400},
   {"action":"setColor","value":"#FFCC00","duration":0},
-  {"action":"circle","cx":450,"cy":248,"r":14,"fill":"#FFCC00","stroke":"#DDAA00","strokeWidth":2,"mode":"both","brush":"pencil","fillAngle":45,"duration":300}
+  {"action":"circle","cx":450,"cy":248,"r":14,"fill":"#FFCC00","stroke":"#DDAA00","strokeWidth":1.2,"mode":"both","brush":"pencil","fillAngle":45,"duration":300}
 ]}
 
 花的结构口诀: 花心锚定中心 → 5瓣围绕排 → 茎从花心下 → 叶在茎两侧
@@ -123,14 +130,14 @@ speak: { "action":"speak", "text":"..." }
 用户: "画一棵绿色的树"
 输出: {"reply":"好的，在画布中央画了一棵树","instructions":[
   {"action":"setColor","value":"#8B6914","duration":0},
-  {"action":"rect","x":430,"y":290,"w":40,"h":120,"fill":"#8B6914","stroke":"#6B4E0A","strokeWidth":2,"mode":"both","duration":400},
+  {"action":"rect","x":430,"y":290,"w":40,"h":120,"fill":"#8B6914","stroke":"#6B4E0A","strokeWidth":1.5,"mode":"both","duration":400},
   {"action":"setColor","value":"#2D7D2D","duration":0},
-  {"action":"circle","cx":420,"cy":280,"r":55,"fill":"#2D7D2D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":500},
-  {"action":"circle","cx":480,"cy":280,"r":55,"fill":"#2D7D2D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":500},
-  {"action":"circle","cx":450,"cy":240,"r":65,"fill":"#3D8D3D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":550},
-  {"action":"circle","cx":430,"cy":210,"r":50,"fill":"#4DA84D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":450},
-  {"action":"circle","cx":470,"cy":210,"r":50,"fill":"#4DA84D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":450},
-  {"action":"circle","cx":450,"cy":180,"r":42,"fill":"#5DB85D","stroke":"#1B5B1B","strokeWidth":2,"mode":"both","brush":"paint","duration":400}
+  {"action":"circle","cx":420,"cy":280,"r":55,"fill":"#2D7D2D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":500},
+  {"action":"circle","cx":480,"cy":280,"r":55,"fill":"#2D7D2D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":500},
+  {"action":"circle","cx":450,"cy":240,"r":65,"fill":"#3D8D3D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":550},
+  {"action":"circle","cx":430,"cy":210,"r":50,"fill":"#4DA84D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":450},
+  {"action":"circle","cx":470,"cy":210,"r":50,"fill":"#4DA84D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":450},
+  {"action":"circle","cx":450,"cy":180,"r":42,"fill":"#5DB85D","stroke":"#1B5B1B","strokeWidth":1.5,"mode":"both","brush":"paint","duration":400}
 ]}
 
 树的结构口诀: 干立中央 → 底冠宽 → 中冠收 → 顶冠尖 → 三角轮廓
@@ -146,13 +153,13 @@ speak: { "action":"speak", "text":"..." }
 用户: "画一个太阳"
 输出: {"reply":"好的，在右上角画了一个太阳","instructions":[
   {"action":"setColor","value":"#FFAA44","duration":0},
-  {"action":"line","x1":150,"y1":80,"x2":200,"y2":55,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"line","x1":130,"y1":55,"x2":155,"y2":20,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"line","x1":100,"y1":45,"x2":105,"y2":5,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"line","x1":70,"y1":55,"x2":45,"y2":20,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"line","x1":50,"y1":80,"x2":5,"y2":55,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"line","x1":45,"y1":110,"x2":5,"y2":110,"stroke":"#FFAA44","strokeWidth":4,"mode":"stroke","duration":150},
-  {"action":"circle","cx":120,"cy":90,"r":48,"fill":"#FFDD22","stroke":"#FF9900","strokeWidth":3,"mode":"both","brush":"paint","duration":500}
+  {"action":"line","x1":150,"y1":80,"x2":200,"y2":55,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"line","x1":130,"y1":55,"x2":155,"y2":20,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"line","x1":100,"y1":45,"x2":105,"y2":5,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"line","x1":70,"y1":55,"x2":45,"y2":20,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"line","x1":50,"y1":80,"x2":5,"y2":55,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"line","x1":45,"y1":110,"x2":5,"y2":110,"stroke":"#FFAA44","strokeWidth":2,"mode":"stroke","duration":150},
+  {"action":"circle","cx":120,"cy":90,"r":48,"fill":"#FFDD22","stroke":"#FF9900","strokeWidth":1.5,"mode":"both","brush":"paint","duration":500}
 ]}
 
 太阳的结构口诀: 光芒先放 → 圆盘后盖 → 光线根部被遮 = 自然光照
@@ -191,14 +198,14 @@ speak: { "action":"speak", "text":"..." }
 用户: "画一个房子"
 输出: {"reply":"好的，画了一个小房子","instructions":[
   {"action":"setColor","value":"#F5DEB3","duration":0},
-  {"action":"rect","x":320,"y":250,"w":140,"h":110,"fill":"#F5DEB3","stroke":"#C4A882","strokeWidth":2,"mode":"both","duration":500},
+  {"action":"rect","x":320,"y":250,"w":140,"h":110,"fill":"#F5DEB3","stroke":"#C4A882","strokeWidth":1.5,"mode":"both","duration":500},
   {"action":"setColor","value":"#CC4444","duration":0},
-  {"action":"polygon","points":[[295,255],[390,180],[485,255]],"fill":"#CC4444","stroke":"#992222","strokeWidth":2,"mode":"both","duration":450},
+  {"action":"polygon","points":[[295,255],[390,180],[485,255]],"fill":"#CC4444","stroke":"#992222","strokeWidth":1.5,"mode":"both","duration":450},
   {"action":"setColor","value":"#5599DD","duration":0},
-  {"action":"rect","x":348,"y":278,"w":26,"h":26,"fill":"#5599DD","stroke":"#3377BB","strokeWidth":1.5,"mode":"both","duration":200},
-  {"action":"rect","x":406,"y":278,"w":26,"h":26,"fill":"#5599DD","stroke":"#3377BB","strokeWidth":1.5,"mode":"both","duration":200},
+  {"action":"rect","x":348,"y":278,"w":26,"h":26,"fill":"#5599DD","stroke":"#3377BB","strokeWidth":1,"mode":"both","duration":200},
+  {"action":"rect","x":406,"y":278,"w":26,"h":26,"fill":"#5599DD","stroke":"#3377BB","strokeWidth":1,"mode":"both","duration":200},
   {"action":"setColor","value":"#6B3A2A","duration":0},
-  {"action":"rect","x":375,"y":315,"w":22,"h":45,"fill":"#6B3A2A","stroke":"#4A2218","strokeWidth":1.5,"mode":"both","duration":200}
+  {"action":"rect","x":375,"y":315,"w":22,"h":45,"fill":"#6B3A2A","stroke":"#4A2218","strokeWidth":1,"mode":"both","duration":200}
 ]}
 
 房子结构口诀: 屋顶三角 → 墙体方正 → 窗对称 → 门居中
@@ -216,15 +223,15 @@ speak: { "action":"speak", "text":"..." }
 用户: "画一只蝴蝶"
 输出: {"reply":"好的，画了一只蝴蝶","instructions":[
   {"action":"setColor","value":"#444444","duration":0},
-  {"action":"ellipse","cx":450,"cy":225,"rx":7,"ry":34,"fill":"#444444","stroke":"#222222","strokeWidth":1.5,"mode":"both","duration":250},
-  {"action":"curve","points":[[447,195],[425,170],[418,160]],"stroke":"#444444","strokeWidth":2,"mode":"stroke","duration":200},
-  {"action":"curve","points":[[453,195],[475,170],[482,160]],"stroke":"#444444","strokeWidth":2,"mode":"stroke","duration":200},
+  {"action":"ellipse","cx":450,"cy":225,"rx":7,"ry":34,"fill":"#444444","stroke":"#333333","strokeWidth":1,"mode":"both","duration":250},
+  {"action":"curve","points":[[447,195],[425,170],[418,160]],"stroke":"#444444","strokeWidth":1.5,"mode":"stroke","duration":200},
+  {"action":"curve","points":[[453,195],[475,170],[482,160]],"stroke":"#444444","strokeWidth":1.5,"mode":"stroke","duration":200},
   {"action":"setColor","value":"#FF99BB","duration":0},
-  {"action":"ellipse","cx":415,"cy":200,"rx":22,"ry":36,"fill":"#FF99BB","stroke":"#DD7799","strokeWidth":2,"mode":"both","duration":450},
-  {"action":"ellipse","cx":485,"cy":200,"rx":22,"ry":36,"fill":"#FF99BB","stroke":"#DD7799","strokeWidth":2,"mode":"both","duration":450},
+  {"action":"ellipse","cx":415,"cy":200,"rx":22,"ry":36,"fill":"#FF99BB","stroke":"#DD7799","strokeWidth":1.5,"mode":"both","duration":450},
+  {"action":"ellipse","cx":485,"cy":200,"rx":22,"ry":36,"fill":"#FF99BB","stroke":"#DD7799","strokeWidth":1.5,"mode":"both","duration":450},
   {"action":"setColor","value":"#FFBBDD","duration":0},
-  {"action":"ellipse","cx":420,"cy":260,"rx":16,"ry":26,"fill":"#FFBBDD","stroke":"#DD7799","strokeWidth":2,"mode":"both","duration":400},
-  {"action":"ellipse","cx":480,"cy":260,"rx":16,"ry":26,"fill":"#FFBBDD","stroke":"#DD7799","strokeWidth":2,"mode":"both","duration":400},
+  {"action":"ellipse","cx":420,"cy":260,"rx":16,"ry":26,"fill":"#FFBBDD","stroke":"#DD7799","strokeWidth":1.5,"mode":"both","duration":400},
+  {"action":"ellipse","cx":480,"cy":260,"rx":16,"ry":26,"fill":"#FFBBDD","stroke":"#DD7799","strokeWidth":1.5,"mode":"both","duration":400},
   {"action":"setColor","value":"#DD7799","duration":0},
   {"action":"circle","cx":415,"cy":200,"r":6,"fill":"#DD7799","stroke":"none","strokeWidth":0,"mode":"both","duration":150},
   {"action":"circle","cx":485,"cy":200,"r":6,"fill":"#DD7799","stroke":"none","strokeWidth":0,"mode":"both","duration":150}
@@ -247,11 +254,11 @@ speak: { "action":"speak", "text":"..." }
 用户: "画一只小鸟"
 输出: {"reply":"好的，画了一只小鸟","instructions":[
   {"action":"setColor","value":"#FF6644","duration":0},
-  {"action":"circle","cx":370,"cy":175,"r":35,"fill":"#FF6644","stroke":"#CC4422","strokeWidth":2,"mode":"both","brush":"paint","duration":400},
-  {"action":"line","x1":358,"y1":206,"x2":350,"y2":228,"stroke":"#FF8844","strokeWidth":3,"mode":"stroke","duration":150},
-  {"action":"line","x1":382,"y1":206,"x2":390,"y2":228,"stroke":"#FF8844","strokeWidth":3,"mode":"stroke","duration":150},
+  {"action":"circle","cx":370,"cy":175,"r":35,"fill":"#FF6644","stroke":"#CC4422","strokeWidth":1.5,"mode":"both","brush":"paint","duration":400},
+  {"action":"line","x1":358,"y1":206,"x2":350,"y2":228,"stroke":"#FF8844","strokeWidth":1.5,"mode":"stroke","duration":150},
+  {"action":"line","x1":382,"y1":206,"x2":390,"y2":228,"stroke":"#FF8844","strokeWidth":1.5,"mode":"stroke","duration":150},
   {"action":"setColor","value":"#FF6644","duration":0},
-  {"action":"circle","cx":335,"cy":150,"r":18,"fill":"#FF6644","stroke":"#CC4422","strokeWidth":2,"mode":"both","brush":"paint","duration":300},
+  {"action":"circle","cx":335,"cy":150,"r":18,"fill":"#FF6644","stroke":"#CC4422","strokeWidth":1.5,"mode":"both","brush":"paint","duration":300},
   {"action":"setColor","value":"#FF8866","duration":0},
   {"action":"ellipse","cx":385,"cy":178,"rx":11,"ry":26,"fill":"#FF8866","stroke":"#CC6644","strokeWidth":1.5,"mode":"both","duration":300},
   {"action":"setColor","value":"#FF8800","duration":0},
