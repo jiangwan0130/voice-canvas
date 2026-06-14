@@ -60,8 +60,8 @@ paraformer_asr = ParaformerASR()
 
 class GridObject(BaseModel):
     id: str
-    label: str
-    type: str
+    label: str = ""
+    type: str = "unknown"
     role: Optional[str] = None
     groupId: Optional[str] = None
     cellId: Optional[str] = None

@@ -9,11 +9,11 @@ const SHAPE_ACTIONS = new Set<string>(['circle','rect','line','curve','polygon',
 
 /** 将 DrawInstruction 的 action 字段映射为 DrawObject 兼容的 type 字段 */
 function instructionToDrawParams(inst: DrawInstruction): Partial<DrawObject> {
-  const { action, ...rest } = inst;
+  const { action, label, ...rest } = inst;
   if (SHAPE_ACTIONS.has(action)) {
-    return { ...rest, type: action as ShapeType } as Partial<DrawObject>;
+    return { ...rest, type: action as ShapeType, label: (label as string) ?? action } as Partial<DrawObject>;
   }
-  return rest as Partial<DrawObject>;
+  return { ...rest, label: (label as string) ?? action } as Partial<DrawObject>;
 }
 
 export class CommandExecutor {
