@@ -364,7 +364,9 @@ export class CanvasRenderer {
   }
 
   private async drawPolygon(inst: DrawInstruction): Promise<void> {
-    const points = inst.points as Array<[number, number]> ?? [];
+    const rawPoints = inst.points as Array<[number, number]> | undefined;
+    if (!rawPoints || !Array.isArray(rawPoints) || rawPoints.length < 3) return;
+    const points = rawPoints.filter(p => Array.isArray(p) && p.length >= 2 && isFinite(p[0]) && isFinite(p[1]));
     if (points.length < 3) return;
     const mode = (inst.mode as DrawMode) ?? 'both';
     const duration = (inst.duration as number) ?? 500;
@@ -395,9 +397,10 @@ export class CanvasRenderer {
       }
       // 当前边的部分插值
       if (idx < totalSegments) {
-        const frac = rawIdx - (idx - 1);
-        const px = points[idx - 1][0] + (points[idx][0] - points[idx - 1][0]) * frac;
-        const py = points[idx - 1][1] + (points[idx][1] - points[idx - 1][1]) * frac;
+        const prev = idx > 0 ? idx - 1 : totalSegments - 1;
+        const frac = rawIdx - (idx > 0 ? idx - 1 : -1);
+        const px = points[prev][0] + (points[idx][0] - points[prev][0]) * frac;
+        const py = points[prev][1] + (points[idx][1] - points[prev][1]) * frac;
         this.ctx.lineTo(px, py);
       } else {
         this.ctx.closePath();
