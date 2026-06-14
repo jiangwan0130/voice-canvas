@@ -60,6 +60,8 @@ class GridObject(BaseModel):
     cx: Optional[float] = None
     cy: Optional[float] = None
     r: Optional[float] = None
+    rx: Optional[float] = None
+    ry: Optional[float] = None
     x: Optional[float] = None
     y: Optional[float] = None
     w: Optional[float] = None
@@ -69,6 +71,7 @@ class GridObject(BaseModel):
     x2: Optional[float] = None
     y2: Optional[float] = None
     fill: Optional[str] = None
+    stroke: Optional[str] = None
     color: Optional[str] = None
     class Config: extra = "allow"
 
