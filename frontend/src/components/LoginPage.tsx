@@ -54,7 +54,10 @@ export function LoginPage({ onEnter }: LoginPageProps) {
           </div>
 
           <h1 className="login-title">
-            <span className="login-title-cn">语绘</span>
+            <span className="login-title-cn">
+              <span className="login-char" style={{ animationDelay: '0s' }}>语</span>
+              <span className="login-char" style={{ animationDelay: '0.15s' }}>绘</span>
+            </span>
             <span className="login-title-en">Voice Canvas</span>
           </h1>
           <p className="login-desc">

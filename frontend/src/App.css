@@ -526,13 +526,40 @@ body {
 }
 
 .login-title-cn {
-  font-size: 38px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #3b7dd8 0%, #5b4fcf 100%);
+  font-size: 42px;
+  font-weight: 900;
+  display: flex;
+  gap: 2px;
+}
+
+.login-char {
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    #3b7dd8 0%,
+    #6b5fd8 25%,
+    #9b4fd8 50%,
+    #6b5fd8 75%,
+    #3b7dd8 100%
+  );
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: 0.08em;
+  animation: title-flow 4s ease-in-out infinite, char-float 2.5s ease-in-out infinite;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(80, 100, 220, 0.2));
+}
+
+@keyframes title-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes char-float {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(-3px); }
+  60%      { transform: translateY(0); }
 }
 
 .login-title-en {
