@@ -15,11 +15,15 @@ export async function generateInstructions(
   canvasState: CanvasState,
   lastAction: LastAction | null,
 ): Promise<{ reply: string; instructions: DrawInstruction[]; source: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 300_000);
   const res = await fetch(`${BASE}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, canvas_state: canvasState, last_action: lastAction }),
+    signal: controller.signal,
   });
+  clearTimeout(timeoutId);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
