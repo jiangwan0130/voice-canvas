@@ -7,7 +7,7 @@
 
 ## 🎥 演示
 
-<video src="https://github.com/jiangwan0130/voice-canvas/releases/download/v1.0.0/demo-video.mp4" controls width="100%"></video>
+<iframe src="//player.bilibili.com/player.html?bvid=BV137JK69EuP&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="100%" height="480"></iframe>
 
 ---
 
