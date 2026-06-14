@@ -103,6 +103,102 @@ body {
   border-radius: 20px;
 }
 
+/* ---- Palette Bar ---- */
+.palette-bar {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.palette-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.palette-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b0b0b0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.palette-items {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.palette-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* 画笔条目 */
+.palette-brush {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: #f8f8f8;
+  cursor: default;
+  transition: background 0.2s;
+}
+
+.palette-brush:hover {
+  background: #f0f0f0;
+}
+
+.palette-brush-icon {
+  font-size: 14px;
+}
+
+.palette-brush-name {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* 颜色条目 */
+.palette-color {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: default;
+  transition: background 0.2s;
+}
+
+.palette-color:hover {
+  background: #f5f5f5;
+}
+
+.palette-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.palette-color-name {
+  font-size: 11px;
+  color: #888;
+}
+
 /* ---- Main Canvas Area ---- */
 .app-main {
   flex: 1;

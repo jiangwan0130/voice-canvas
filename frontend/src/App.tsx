@@ -8,6 +8,7 @@ import Canvas from './components/Canvas';
 import type { CanvasHandle } from './components/Canvas';
 import { VoiceBar } from './components/VoiceBar';
 import { CommandHistory } from './components/CommandHistory';
+import { PaletteBar } from './components/PaletteBar';
 import { LoginPage } from './components/LoginPage';
 import { ObjectStore } from './engine/ObjectStore';
 import { HistoryManager } from './engine/HistoryManager';
@@ -193,6 +194,8 @@ function App() {
         </div>
         <span className="app-user">{username}</span>
       </header>
+
+      <PaletteBar />
 
       <VoiceBar
         status={status}
