@@ -17,13 +17,19 @@ export async function generateInstructions(
 ): Promise<{ reply: string; instructions: DrawInstruction[]; source: string }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 300_000);
+  const body = JSON.stringify({ text, canvas_state: canvasState, conversation_history: conversationHistory });
+  console.log('[API] Request body size:', body.length, 'bytes');
   const res = await fetch(`${BASE}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, canvas_state: canvasState, conversation_history: conversationHistory }),
+    body,
     signal: controller.signal,
   });
   clearTimeout(timeoutId);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('[API] 422/500 response:', errText.slice(0, 300));
+    throw new Error(`API error: ${res.status}`);
+  }
   return res.json();
 }
