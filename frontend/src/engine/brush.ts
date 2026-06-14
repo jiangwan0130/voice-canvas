@@ -33,10 +33,10 @@ class PencilBrush implements BrushStrategy {
     ctx.clip();
 
     const angle = (options.fillAngle * Math.PI) / 180;
-    const spacing = Math.max(2, 12 - options.fillDensity); // 密度1→粗, 10→细
+    // 密度映射: 1=稀疏 10=极致密集 (spacing 从 8px → 0.6px)
+    const spacing = Math.max(0.6, 8.5 - options.fillDensity * 0.8);
     const canvasGradient = gradient ? createCanvasGradient(ctx, gradient) : null;
 
-    // 估算裁剪区域大小，决定排线范围
     const size = Math.max(ctx.canvas.width, ctx.canvas.height);
     const steps = Math.floor(size / spacing);
 
@@ -45,24 +45,50 @@ class PencilBrush implements BrushStrategy {
     const perpX = Math.cos(angle + Math.PI / 2);
     const perpY = Math.sin(angle + Math.PI / 2);
 
+    // 主线排（角度 = fillAngle）
+    this._drawHatchLines(ctx, steps, spacing, dx, dy, perpX, perpY, color, canvasGradient, 0.7);
+
+    // 交叉排线（角度偏移 25°, 线更细更稀, 模拟真实彩铅交叉填色）
+    const angle2 = (options.fillAngle + 25) * Math.PI / 180;
+    const dx2 = Math.cos(angle2) * size;
+    const dy2 = Math.sin(angle2) * size;
+    const perpX2 = Math.cos(angle2 + Math.PI / 2);
+    const perpY2 = Math.sin(angle2 + Math.PI / 2);
+    const spacing2 = spacing * 1.8;  // 交叉层间距稍宽
+    const steps2 = Math.floor(size / spacing2);
+    this._drawHatchLines(ctx, steps2, spacing2, dx2, dy2, perpX2, perpY2, color, canvasGradient, 0.5, 0.35);
+
+    ctx.restore();
+  }
+
+  private _drawHatchLines(
+    ctx: CanvasRenderingContext2D,
+    steps: number,
+    spacing: number,
+    dx: number, dy: number,
+    perpX: number, perpY: number,
+    color: string,
+    canvasGradient: CanvasGradient | null,
+    lineWidth: number,
+    alpha: number = 0.8
+  ): void {
+    ctx.globalAlpha = alpha;
     for (let i = -steps; i <= steps; i++) {
-      const startX = ctx.canvas.width / 2
-        - dx / 2
-        + i * spacing * perpX;
-      const startY = ctx.canvas.height / 2
-        - dy / 2
-        + i * spacing * perpY;
+      const startX = ctx.canvas.width / 2 - dx / 2 + i * spacing * perpX;
+      const startY = ctx.canvas.height / 2 - dy / 2 + i * spacing * perpY;
       const endX = startX + dx;
       const endY = startY + dy;
 
-      // 手绘抖动（±0.5px，每线随机）
-      const jitter = () => (Math.random() - 0.5) * 0.5;
+      // 手绘微抖（±0.3px, 模拟彩铅线条的自然不规则）
+      const jx1 = (Math.random() - 0.5) * 0.6;
+      const jy1 = (Math.random() - 0.5) * 0.6;
+      const jx2 = (Math.random() - 0.5) * 0.6;
+      const jy2 = (Math.random() - 0.5) * 0.6;
 
       ctx.beginPath();
-      ctx.moveTo(startX + jitter(), startY + jitter());
-      ctx.lineTo(endX + jitter(), endY + jitter());
+      ctx.moveTo(startX + jx1, startY + jy1);
+      ctx.lineTo(endX + jx2, endY + jy2);
 
-      // 渐变取色：取排线中点位置的渐变色
       if (canvasGradient) {
         const midX = (startX + endX) / 2;
         const midY = (startY + endY) / 2;
@@ -70,11 +96,10 @@ class PencilBrush implements BrushStrategy {
       } else {
         ctx.strokeStyle = color;
       }
-      ctx.lineWidth = 1;
+      ctx.lineWidth = lineWidth;
       ctx.stroke();
     }
-
-    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 }
 
