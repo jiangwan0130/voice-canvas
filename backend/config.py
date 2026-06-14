@@ -11,6 +11,7 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 LLM_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 LLM_API_BASE = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-plus")
+VISUAL_MODEL = os.getenv("VISUAL_MODEL", "qwen3-vl-plus")  # 视觉自验证用 VL 模型
 
 # CORS
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")

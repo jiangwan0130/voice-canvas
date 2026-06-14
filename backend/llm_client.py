@@ -9,7 +9,7 @@ API 文档: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
 import json
 import logging
 import httpx
-from config import LLM_API_KEY, LLM_API_BASE, LLM_MODEL, CANVAS_WIDTH, CANVAS_HEIGHT
+from config import LLM_API_KEY, LLM_API_BASE, LLM_MODEL, VISUAL_MODEL, CANVAS_WIDTH, CANVAS_HEIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -366,7 +366,7 @@ Reply in concise Chinese, one issue per line."""
 
 
 async def visual_verify(image_base64: str, expected_prompt: str) -> str:
-    """Send canvas screenshot to Qwen3-VL for visual self-verification.
+    """Send canvas screenshot to Qwen3-VL (DashScope 兼容模式) for visual self-verification.
 
     Args:
         image_base64: PNG screenshot as base64 (no data URI prefix)
@@ -375,38 +375,34 @@ async def visual_verify(image_base64: str, expected_prompt: str) -> str:
     Returns:
         Model feedback text (issue list or "OK")
     """
-    verify_messages = [
-        {
-            "role": "system",
-            "content": [{"text": VISUAL_VERIFY_SYSTEM_PROMPT}],
-        },
-        {
-            "role": "user",
-            "content": [
-                {"image": f"data:image/png;base64,{image_base64}"},
-                {"text": f"User intent: {expected_prompt}\n\nCheck if the canvas matches."},
-            ],
-        },
-    ]
-
-    request_body = {
-        "model": LLM_MODEL,
-        "input": {"messages": verify_messages},
-        "parameters": {
-            "result_format": "message",
-            "temperature": 0.2,
-            "max_tokens": 2048,
-        },
-    }
-
     async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(
-            LLM_API_BASE,
+            f"{LLM_API_BASE}/chat/completions",
             headers={
                 "Authorization": f"Bearer {LLM_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json=request_body,
+            json={
+                "model": VISUAL_MODEL,
+                "messages": [
+                    {"role": "system", "content": VISUAL_VERIFY_SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                            },
+                            {
+                                "type": "text",
+                                "text": f"User intent: {expected_prompt}\n\nCheck if the canvas matches.",
+                            },
+                        ],
+                    },
+                ],
+                "temperature": 0.2,
+                "max_tokens": 2048,
+            },
         )
 
     if response.status_code != 200:
@@ -415,10 +411,7 @@ async def visual_verify(image_base64: str, expected_prompt: str) -> str:
 
     data = response.json()
     try:
-        content_parts = data["output"]["choices"][0]["message"]["content"]
-        return "".join(
-            part.get("text", "") for part in content_parts if isinstance(part, dict)
-        )
+        return data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as e:
         logger.error(f"Visual verify parse error: {e}")
         raise Exception(f"Visual verify response parse error: {e}")

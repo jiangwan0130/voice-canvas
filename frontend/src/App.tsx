@@ -38,6 +38,7 @@ function App() {
   const executorRef = useRef<CommandExecutor | null>(null);
   const conversationHistoryRef = useRef<ConversationTurn[]>([]);
   const [debugText, setDebugText] = useState('');
+  const [debugOpen, setDebugOpen] = useState(false);
   const [objectCount, setObjectCount] = useState(0);
   const isProcessingRef = useRef(false);
 
@@ -267,6 +268,7 @@ function App() {
           <h1>🎨 <span className="app-title-cn">语绘</span> <span className="app-title-en">Voice Canvas</span></h1>
         </div>
         <span className="app-user">{username}</span>
+        <span className="app-debug-toggle" onClick={() => setDebugOpen(v => !v)} title="调试面板">🔧</span>
       </header>
 
       <PaletteBar />
@@ -284,18 +286,20 @@ function App() {
 
       <CommandHistory items={history} maxShow={5} />
 
-      {/* 文本输入 — 临时替代语音 */}
-      <div className="text-input-bar">
-        <input
-          type="text"
-          value={debugText}
-          onChange={e => setDebugText(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleDebugSend()}
-          placeholder="输入指令，例如：画一只猫、加个太阳..."
-          className="text-input"
-        />
-        <button onClick={handleDebugSend} className="text-send">发送</button>
-      </div>
+      {/* 调试面板 — 默认折叠（Demo 演示时不可见） */}
+      {debugOpen && (
+        <div className="text-input-bar">
+          <input
+            type="text"
+            value={debugText}
+            onChange={e => setDebugText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleDebugSend()}
+            placeholder="输入指令，例如：画一只猫、加个太阳..."
+            className="text-input"
+          />
+          <button onClick={handleDebugSend} className="text-send">发送</button>
+        </div>
+      )}
 
       <main className="app-main">
         <ErrorBoundary>
