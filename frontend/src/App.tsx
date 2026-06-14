@@ -8,6 +8,7 @@ import Canvas from './components/Canvas';
 import type { CanvasHandle } from './components/Canvas';
 import { VoiceBar } from './components/VoiceBar';
 import { CommandHistory } from './components/CommandHistory';
+import { LoginPage } from './components/LoginPage';
 import { ObjectStore } from './engine/ObjectStore';
 import { HistoryManager } from './engine/HistoryManager';
 import { CommandExecutor } from './engine/CommandExecutor';
@@ -22,7 +23,11 @@ import './App.css';
 
 export type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
 
+type Page = 'login' | 'draw';
+
 function App() {
+  const [page, setPage] = useState<Page>('login');
+  const [username, setUsername] = useState('');
   const [status, setStatus] = useState<AppStatus>('idle');
   const [subtitle, setSubtitle] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -173,12 +178,20 @@ function App() {
     if (debugText.trim()) { processText(debugText.trim()); setDebugText(''); }
   };
 
-  // ---- 状态颜色 ----
+  // ---- 登录页 ----
+  if (page === 'login') {
+    return <LoginPage onEnter={(name) => { setUsername(name); setPage('draw'); }} />;
+  }
 
+  // ---- 绘画页 ----
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎨 语绘 Voice Canvas</h1>
+        <div className="app-header-left">
+          <span className="app-back" onClick={() => setPage('login')} title="返回登录">←</span>
+          <h1>🎨 语绘 Voice Canvas</h1>
+        </div>
+        <span className="app-user">{username}</span>
       </header>
 
       <main className="app-main">
