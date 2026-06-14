@@ -17,8 +17,8 @@ LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
 
 # Canvas
-CANVAS_WIDTH = 1200
-CANVAS_HEIGHT = 800
+CANVAS_WIDTH = 900
+CANVAS_HEIGHT = 550
 GRID_COLS = 3
 GRID_ROWS = 2
 
