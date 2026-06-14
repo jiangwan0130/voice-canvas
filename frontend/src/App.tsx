@@ -16,7 +16,7 @@ import { CommandExecutor } from './engine/CommandExecutor';
 import { useVoice } from './hooks/useVoice';
 import { speak } from './hooks/useSpeechFeedback';
 import { transcribeAudio, generateInstructions } from './services/api';
-import type { CanvasState, LastAction } from './types/commands';
+import type { CanvasState, ConversationTurn } from './types/commands';
 import type { VoiceStatus } from './hooks/useVoice';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -36,7 +36,7 @@ function App() {
   const storeRef = useRef(new ObjectStore(CANVAS_WIDTH, CANVAS_HEIGHT));
   const historyMgrRef = useRef(new HistoryManager());
   const executorRef = useRef<CommandExecutor | null>(null);
-  const lastActionRef = useRef<LastAction | null>(null);
+  const conversationHistoryRef = useRef<ConversationTurn[]>([]);
   const [debugText, setDebugText] = useState('');
   const [objectCount, setObjectCount] = useState(0);
   const isProcessingRef = useRef(false);
@@ -55,11 +55,14 @@ function App() {
       const store = storeRef.current;
       const canvasState: CanvasState = { width: store.width, height: store.height, grid: store.toGridState() };
 
-      // 调用后端 /api/generate
-      const resp = await generateInstructions(text, canvasState, lastActionRef.current);
+      // 调用后端 /api/generate（传入历史，不含当前轮）
+      const resp = await generateInstructions(text, canvasState, conversationHistoryRef.current);
 
-      // 更新 last_action
-      lastActionRef.current = { user_text: text, reply: resp.reply, instructions: resp.instructions };
+      // 追加当前轮到历史（最多保留20轮）
+      conversationHistoryRef.current = [
+        ...conversationHistoryRef.current,
+        { user_text: text, reply: resp.reply, instructions: resp.instructions, undone: false },
+      ].slice(-20);
 
       // 执行指令
       setStatus('drawing');
@@ -150,6 +153,14 @@ function App() {
   const handleUndo = () => {
     canvasRef.current?.abort();
     if (executorRef.current?.undo()) {
+      // 标记最近一轮未撤销的轮次为已撤销
+      const history = conversationHistoryRef.current;
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (!history[i].undone && history[i].instructions.length > 0) {
+          history[i] = { ...history[i], undone: true };
+          break;
+        }
+      }
       setObjectCount(storeRef.current.count);
       setSubtitle('已撤销');
       setStatus('idle');
@@ -159,6 +170,14 @@ function App() {
   const handleRedo = () => {
     canvasRef.current?.abort();
     if (executorRef.current?.redo()) {
+      // 恢复最近一轮已撤销的轮次
+      const history = conversationHistoryRef.current;
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].undone) {
+          history[i] = { ...history[i], undone: false };
+          break;
+        }
+      }
       setObjectCount(storeRef.current.count);
       setSubtitle('已重做');
       setStatus('idle');
@@ -169,7 +188,7 @@ function App() {
     storeRef.current.clear();
     historyMgrRef.current.clear();
     canvasRef.current?.clear();
-    lastActionRef.current = null;
+    conversationHistoryRef.current = [];
     setHistory([]);
     setObjectCount(0);
     setSubtitle('画布已清空');

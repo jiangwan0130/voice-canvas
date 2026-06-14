@@ -1,5 +1,5 @@
 /** API 通信层 — PR #10 月栖白 */
-import type { DrawInstruction, CanvasState, LastAction } from '../types/commands';
+import type { DrawInstruction, CanvasState, ConversationTurn } from '../types/commands';
 
 const BASE = '/api';
 
@@ -13,14 +13,14 @@ export async function transcribeAudio(audioBlob: Blob): Promise<{ text: string; 
 export async function generateInstructions(
   text: string,
   canvasState: CanvasState,
-  lastAction: LastAction | null,
+  conversationHistory: ConversationTurn[],
 ): Promise<{ reply: string; instructions: DrawInstruction[]; source: string }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 300_000);
   const res = await fetch(`${BASE}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, canvas_state: canvasState, last_action: lastAction }),
+    body: JSON.stringify({ text, canvas_state: canvasState, conversation_history: conversationHistory }),
     signal: controller.signal,
   });
   clearTimeout(timeoutId);
