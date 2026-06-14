@@ -1,31 +1,17 @@
 // ============================================================
-// 语绘 (Voice Canvas) — 登录页（声纹主题）
+// 语绘 (Voice Canvas) — 登录页（海浪调色盘主题）
 // PR #12: 芝士番薯 — UI 打磨
 // ============================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 interface LoginPageProps {
   onEnter: (username: string) => void;
 }
 
-// ---- 声纹波形条数据 ----
-const WAVE_BARS = [
-  [4, 8, 12, 18, 24, 20, 14, 10, 6, 4, 8, 16, 22, 18, 10, 5, 3, 7, 13, 19, 24, 21, 15, 8],
-  [6, 10, 16, 22, 28, 24, 16, 10, 5, 3, 7, 15, 24, 30, 26, 18, 10, 6, 4, 8, 14, 20, 26, 22],
-  [3, 6, 10, 15, 22, 25, 20, 12, 5, 2, 5, 12, 20, 27, 28, 22, 14, 7, 3, 6, 11, 17, 24, 25],
-];
-
 export function LoginPage({ onEnter }: LoginPageProps) {
   const [name, setName] = useState('');
   const [animating, setAnimating] = useState(false);
-  const [wavePhase, setWavePhase] = useState(0);
-
-  // 声波跳动循环
-  useEffect(() => {
-    const timer = setInterval(() => setWavePhase(p => (p + 1) % WAVE_BARS.length), 200);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleSubmit = () => {
     const trimmed = name.trim();
@@ -34,53 +20,63 @@ export function LoginPage({ onEnter }: LoginPageProps) {
     setTimeout(() => onEnter(trimmed), 600);
   };
 
-  const bars = WAVE_BARS[wavePhase];
-
   return (
     <div className={`login-page ${animating ? 'login-page--out' : ''}`}>
 
-      {/* 声纹波形背景 */}
-      <div className="login-waves">
-        {/* 底部大波形 */}
-        <svg className="login-wave-svg login-wave-svg--bottom" viewBox="0 0 1200 200" preserveAspectRatio="none">
-          <path className="login-wave-path login-wave-path--1" d={generateWavePath(0.6, 0)} />
-          <path className="login-wave-path login-wave-path--2" d={generateWavePath(0.8, 0.3)} />
-          <path className="login-wave-path login-wave-path--3" d={generateWavePath(1.0, 0.6)} />
+      {/* 海浪背景 */}
+      <div className="login-ocean">
+        {/* 远浪 */}
+        <svg className="login-wave login-wave--far" viewBox="0 0 1440 320" preserveAspectRatio="none">
+          <path d="M0,224 C180,288 420,96 720,160 C1020,224 1260,288 1440,192 L1440,320 L0,320 Z" />
         </svg>
-        {/* 顶部波形 */}
-        <svg className="login-wave-svg login-wave-svg--top" viewBox="0 0 1200 200" preserveAspectRatio="none">
-          <path className="login-wave-path login-wave-path--3" d={generateWavePath(0.4, 0.8)} />
-          <path className="login-wave-path login-wave-path--2" d={generateWavePath(0.6, 0.5)} />
+        {/* 中浪 */}
+        <svg className="login-wave login-wave--mid" viewBox="0 0 1440 320" preserveAspectRatio="none">
+          <path d="M0,256 C240,192 480,96 720,128 C960,160 1200,256 1440,224 L1440,320 L0,320 Z" />
+        </svg>
+        {/* 近浪 */}
+        <svg className="login-wave login-wave--near" viewBox="0 0 1440 320" preserveAspectRatio="none">
+          <path d="M0,288 C300,224 540,160 720,192 C900,224 1140,288 1440,256 L1440,320 L0,320 Z" />
         </svg>
       </div>
 
-      {/* 主内容 */}
-      <div className="login-card">
-        {/* 声纹标识区 */}
-        <div className="login-brand">
-          <div className="login-voice-icon">
-            <div className="login-voice-ring login-voice-ring--1" />
-            <div className="login-voice-ring login-voice-ring--2" />
-            <div className="login-voice-ring login-voice-ring--3" />
-            <span className="login-voice-emoji">🎤</span>
-          </div>
+      {/* 装饰圆点 */}
+      <div className="login-dots">
+        <span className="login-dot login-dot--1" />
+        <span className="login-dot login-dot--2" />
+        <span className="login-dot login-dot--3" />
+        <span className="login-dot login-dot--4" />
+        <span className="login-dot login-dot--5" />
+      </div>
 
-          {/* 跳动声波条 */}
-          <div className="login-wave-bars">
-            {bars.map((h, i) => (
-              <span
-                key={i}
-                className="login-wave-bar"
-                style={{ height: `${h}px`, animationDelay: `${i * 0.06}s` }}
-              />
-            ))}
+      {/* 主卡片 */}
+      <div className="login-card">
+        {/* 调色盘图标 */}
+        <div className="login-brand">
+          <div className="login-palette">
+            <div className="login-palette-plate">
+              <span className="login-color-dot login-color-dot--red" />
+              <span className="login-color-dot login-color-dot--blue" />
+              <span className="login-color-dot login-color-dot--yellow" />
+              <span className="login-color-dot login-color-dot--green" />
+              <span className="login-color-dot login-color-dot--purple" />
+              <span className="login-color-dot login-color-dot--pink" />
+              <span className="login-palette-hole" />
+            </div>
+            {/* 画笔 */}
+            <div className="login-brush">
+              <span className="login-brush-tip" />
+              <span className="login-brush-body" />
+            </div>
           </div>
 
           <h1 className="login-title">
             <span className="login-title-cn">语绘</span>
             <span className="login-title-en">Voice Canvas</span>
           </h1>
-          <p className="login-desc">说出你的想法，让 AI 为你落笔</p>
+          <p className="login-desc">
+            <span className="login-desc-icon">🎤</span>
+            说出你的想法，让 AI 为你落笔
+          </p>
         </div>
 
         {/* 输入区 */}
@@ -98,8 +94,14 @@ export function LoginPage({ onEnter }: LoginPageProps) {
                 maxLength={16}
                 autoFocus
               />
-              {/* 输入框声纹装饰线 */}
-              <span className="login-input-line" />
+              {/* 聚焦声纹线 */}
+              <span className="login-input-line">
+                <span className="login-input-line-dot" />
+                <span className="login-input-line-dot" />
+                <span className="login-input-line-dot" />
+                <span className="login-input-line-dot" />
+                <span className="login-input-line-dot" />
+              </span>
             </div>
             <span className="login-hint">⌨ 按下 Enter 开始创作</span>
           </div>
@@ -109,33 +111,11 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             onClick={handleSubmit}
             disabled={!name.trim()}
           >
-            <span className="login-btn-text">进入画室</span>
-            <span className="login-btn-wave">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className="login-btn-bar" style={{ animationDelay: `${i * 0.1}s` }} />
-              ))}
-            </span>
+            进入画室
+            <span className="login-btn-arrow">→</span>
           </button>
         </div>
       </div>
     </div>
   );
-}
-
-// ---- 动态波形路径生成 ----
-function generateWavePath(amplitude: number, phase: number): string {
-  const points = 24;
-  const segments: string[] = [];
-  const segW = 1200 / points;
-
-  for (let i = 0; i <= points; i++) {
-    const x = i * segW;
-    const y = 100 + Math.sin((i / points) * Math.PI * 4 + phase * Math.PI * 2) * 40 * amplitude;
-    if (i === 0) segments.push(`M${x},${y}`);
-    else segments.push(`L${x},${y}`);
-  }
-
-  // 底部闭合
-  segments.push(`L1200,200 L0,200 Z`);
-  return segments.join(' ');
 }
