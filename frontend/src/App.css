@@ -1,21 +1,328 @@
-.app { max-width: 1240px; margin: 0 auto; padding: 16px; font-family: system-ui, sans-serif; }
-.app-header { text-align: center; margin-bottom: 12px; }
-.app-header h1 { margin: 0; font-size: 24px; }
-.app-main { display: flex; justify-content: center; margin-bottom: 12px; }
-.app-footer { background: #fafafa; border-radius: 12px; padding: 12px 16px; border: 1px solid #e8e8e8; }
+/* ============================================================
+   语绘 (Voice Canvas) — 全局样式
+   PR #12: 芝士番薯 — UI 打磨
+   ============================================================ */
 
-.status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.subtitle { color: #666; flex: 1; }
-.object-count { color: #999; font-size: 12px; }
+/* ---- Reset & Base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.action-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.action-row button { padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; }
-.action-row button:hover { border-color: #1677ff; color: #1677ff; }
-.mic-btn { min-width: 100px; }
-.mic-btn.active { background: #fff1f0; border-color: #ff4d4f; color: #ff4d4f; }
-.debug-input { flex: 1; padding: 6px 12px; border: 1px dashed #d9d9d9; border-radius: 6px; font-size: 13px; }
-.debug-input:focus { outline: none; border-color: #1677ff; }
+:root {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --border: #e8e8e8;
+  --text: #1a1a2e;
+  --text-secondary: #8c8c8c;
+  --primary: #1677ff;
+  --danger: #ff4d4f;
+  --success: #52c41a;
+  --warning: #fa8c16;
+  --purple: #722ed1;
+  --pink: #eb2f96;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
 
-.history-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.history-item { background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #666; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'PingFang SC', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- App Layout ---- */
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  gap: 16px;
+}
+
+/* ---- Header ---- */
+.app-header {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.app-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Main Canvas Area ---- */
+.app-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.app-main canvas {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: box-shadow 0.3s ease;
+}
+
+.app-main canvas:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* ---- Voice Bar ---- */
+.voice-bar {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Status Row */
+.vb-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.vb-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.vb-dot[data-status="idle"]           { background: var(--success); }
+.vb-dot[data-status="recording"]      { background: var(--primary); }
+.vb-dot[data-status="transcribing"]   { background: var(--warning); }
+.vb-dot[data-status="generating"]     { background: var(--purple); }
+.vb-dot[data-status="drawing"]        { background: var(--pink); }
+.vb-dot[data-status="error"]          { background: var(--danger); }
+
+/* Pulse animation for recording */
+.vb-dot--pulse {
+  animation: pulse-ring 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(22, 119, 255, 0); }
+}
+
+/* Spin animation for processing */
+.vb-dot--spin {
+  animation: dot-pulse 1.0s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(1.3); }
+}
+
+.vb-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vb-subtitle {
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vb-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  background: var(--bg);
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Actions Row */
+.vb-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Mic Button */
+.vb-mic {
+  position: relative;
+  min-width: 120px;
+  padding: 12px 28px;
+  border: 2px solid var(--border);
+  border-radius: 28px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  color: var(--text);
+}
+
+.vb-mic:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+}
+
+.vb-mic--active {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: #fff1f0;
+  animation: mic-active-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes mic-active-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.3); }
+  50%      { box-shadow: 0 0 0 12px rgba(255, 77, 79, 0); }
+}
+
+.vb-mic--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vb-mic-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 34px;
+  border: 2px solid var(--danger);
+  opacity: 0;
+  animation: ring-expand 1.5s ease-out infinite;
+}
+
+@keyframes ring-expand {
+  0%   { opacity: 0.6; transform: scale(0.95); }
+  100% { opacity: 0;   transform: scale(1.08); }
+}
+
+/* Tool Buttons */
+.vb-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.vb-tool {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.vb-tool:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #f0f5ff;
+  transform: translateY(-1px);
+}
+
+.vb-tool--danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: #fff1f0;
+}
+
+/* ---- Command History ---- */
+.cmd-history {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.cmd-chip {
+  background: #f5f5f5;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  animation: chip-in 0.3s ease-out;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Debug Input (collapsed by default) ---- */
+.debug-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.debug-row:hover,
+.debug-row:focus-within {
+  opacity: 1;
+}
+
+.debug-input {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: transparent;
+  color: var(--text);
+}
+
+.debug-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  border-style: solid;
+}
+
+.debug-send {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.debug-send:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .app { padding: 10px; gap: 10px; }
+  .app-header h1 { font-size: 20px; }
+  .vb-actions { flex-wrap: wrap; }
+  .vb-mic { min-width: 100px; padding: 10px 20px; font-size: 14px; }
+}

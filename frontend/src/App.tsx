@@ -6,6 +6,8 @@
 import { useState, useRef, useCallback } from 'react';
 import Canvas from './components/Canvas';
 import type { CanvasHandle } from './components/Canvas';
+import { VoiceBar } from './components/VoiceBar';
+import { CommandHistory } from './components/CommandHistory';
 import { ObjectStore } from './engine/ObjectStore';
 import { HistoryManager } from './engine/HistoryManager';
 import { CommandExecutor } from './engine/CommandExecutor';
@@ -18,7 +20,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
-type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
+export type AppStatus = 'idle' | 'recording' | 'transcribing' | 'generating' | 'drawing' | 'error';
 
 function App() {
   const [status, setStatus] = useState<AppStatus>('idle');
@@ -173,15 +175,6 @@ function App() {
 
   // ---- 状态颜色 ----
 
-  const STATUS_CONFIG: Record<AppStatus, { color: string; label: string }> = {
-    idle:    { color: '#52c41a', label: '🟢 等待语音' },
-    recording:   { color: '#1677ff', label: '🔵 录音中' },
-    transcribing: { color: '#fa8c16', label: '🟠 识别中' },
-    generating: { color: '#722ed1', label: '🟣 AI 理解中' },
-    drawing:    { color: '#eb2f96', label: '🟣 绘制中' },
-    error:     { color: '#ff4d4f', label: '🔴 错误' },
-  };
-
   return (
     <div className="app">
       <header className="app-header">
@@ -201,36 +194,30 @@ function App() {
         </ErrorBoundary>
       </main>
 
-      <footer className="app-footer">
-        <div className="status-row">
-          <span className="status-dot" style={{ background: STATUS_CONFIG[status].color }} />
-          <span>{STATUS_CONFIG[status].label}</span>
-          <span className="subtitle">{subtitle}</span>
-          <span className="object-count">对象: {objectCount}</span>
-        </div>
+      <VoiceBar
+        status={status}
+        subtitle={subtitle}
+        objectCount={objectCount}
+        onMicClick={handleMicClick}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onClear={handleClear}
+      />
 
-        <div className="action-row">
-          <button onClick={handleMicClick} className={`mic-btn ${status === 'recording' ? 'active' : ''}`}>
-            {status === 'recording' ? '🔴 停止' : '🎤 开始'}
-          </button>
-          <button onClick={handleUndo}>↩ 撤销</button>
-          <button onClick={handleRedo}>↪ 重做</button>
-          <button onClick={handleClear}>🗑 清空</button>
-          <input
-            type="text"
-            value={debugText}
-            onChange={e => setDebugText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleDebugSend()}
-            placeholder="调试输入..."
-            className="debug-input"
-          />
-          <button onClick={handleDebugSend}>发送</button>
-        </div>
+      <CommandHistory items={history} maxShow={5} />
 
-        <div className="history-row">
-          {history.slice(-5).map((h, i) => <span key={i} className="history-item">{h}</span>)}
-        </div>
-      </footer>
+      {/* 调试输入 — 开发环境可见 */}
+      <div className="debug-row">
+        <input
+          type="text"
+          value={debugText}
+          onChange={e => setDebugText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleDebugSend()}
+          placeholder="输入指令调试..."
+          className="debug-input"
+        />
+        <button onClick={handleDebugSend} className="debug-send">发送</button>
+      </div>
     </div>
   );
 }
